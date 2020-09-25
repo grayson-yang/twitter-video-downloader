@@ -42,9 +42,13 @@ class TwitterDownloader:
 		self.tweet_data['id'] = self.tweet_data['tweet_url'].split('/')[5]
 
 		output_path = Path(output_dir)
-		storage_dir = output_path / self.tweet_data['user'] / self.tweet_data['id']
+		storage_dir = output_path / 'cache' / self.tweet_data['id']
 		Path.mkdir(storage_dir, parents = True, exist_ok = True)
 		self.storage = str(storage_dir)
+
+		video_dir = output_path / 'video'
+		Path.mkdir(video_dir, parents = True, exist_ok = True)
+		self.video_prefix = str(video_dir / self.tweet_data['id'])
 
 		self.requests = requests.Session()
 
@@ -61,8 +65,14 @@ class TwitterDownloader:
 			print('[+] Multiple resolutions found. Slurping all resolutions.')
 
 			for plist in playlist.playlists:
+				# 320*180 640*360 1280*720
 				resolution = str(plist.stream_info.resolution[0]) + 'x' + str(plist.stream_info.resolution[1])
-				resolution_file = Path(self.storage) / Path(resolution + '.mp4')
+				resolution_file = Path(self.video_prefix + '_' + resolution + '.mp4')
+
+				# Avoid duplicate
+				if Path.exists(resolution_file):
+					print('[+] Exists ' + resolution)
+					continue
 
 				print('[+] Downloading ' + resolution)
 
@@ -112,6 +122,8 @@ class TwitterDownloader:
 				for ts in ts_full_file_list:
 					p = Path(ts)
 					p.unlink()
+
+			Path.rmdir(Path(self.storage))
 
 		else:
 			print('[-] Sorry, single resolution video download is not yet implemented. Please submit a bug report with the link to the tweet.')
