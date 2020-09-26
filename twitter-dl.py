@@ -24,10 +24,13 @@ class TwitterDownloader:
 	video_api = 'https://api.twitter.com/1.1/videos/tweet/config/'
 	tweet_data = {}
 
-	def __init__(self, tweet_url, output_dir = './output', debug = 0):
+	def __init__(self, tweet_url, output_dir = './output', resolution = 0, debug = 0):
 		self.tweet_url = tweet_url
 		self.output_dir = output_dir
 		self.debug = debug
+		if resolution < 0:
+			resolution = 0
+		self.resolution = resolution
 
 		if debug > 2:
 			self.debug = 2
@@ -64,7 +67,18 @@ class TwitterDownloader:
 		if playlist.is_variant:
 			print('[+] Multiple resolutions found. Slurping all resolutions.')
 
-			for plist in playlist.playlists:
+			# find out the required resolution
+			resolution_playlists = []
+			if self.resolution == 0:
+				for plist in playlist.playlists:
+					resolution_playlists.append(plist)
+			else:
+				if self.resolution <= len(playlist.playlists):
+					resolution_playlists.append(playlist.playlists[self.resolution - 1])
+				else:
+					resolution_playlists.append(playlist.playlists[len(playlist.playlists) - 1])
+
+			for plist in resolution_playlists:
 				# 320*180 640*360 1280*720
 				resolution = str(plist.stream_info.resolution[0]) + 'x' + str(plist.stream_info.resolution[1])
 				resolution_file = Path(self.video_prefix + '_' + resolution + '.mp4')
@@ -203,10 +217,10 @@ if __name__ == '__main__':
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument('tweet_url', help = 'The video URL on Twitter (https://twitter.com/<user>/status/<id>).')
-	parser.add_argument('-o', '--output', dest = 'output', default = './output', help = 'The directory to output to. The structure will be: <output>/<user>/<id>.')
-	parser.add_argument('-d', '--debug', default = 0, action = 'count', dest = 'debug', help = 'Debug. Add more to print out response bodies (maximum 2).')
-
+	parser.add_argument('-o', '--output', dest='output', default = './output', help = 'The directory to output to. The structure will be: <output>/video/.')
+	parser.add_argument('-d', '--debug', default=0, action='count', dest='debug', help = 'Debug. Add more to print out response bodies (maximum 2).')
+	parser.add_argument('-r', '--resolution', dest='resolution', default=0, help='The resolution of video. 0 = All, 1 = Low (320*180), 2 Medium (640*360), 3 High (1280*720).')
 	args = parser.parse_args()
 
-	twitter_dl = TwitterDownloader(args.tweet_url, args.output, args.debug)
+	twitter_dl = TwitterDownloader(args.tweet_url, args.output, int(args.resolution), args.debug)
 	twitter_dl.download()
