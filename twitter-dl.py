@@ -12,6 +12,15 @@ import re
 import ffmpeg
 import shutil
 
+"""
+Usage:
+	m3u8_url="https://video.twimg.com/ext_tw_video/1033356336052850688/pu/pl/wQcHxx2l-D3fB9h7.m3u8?tag=5"
+	video_id="20202020"
+	resolution=0
+	output_dir="./output
+	m3e8Loader = M3E8Downloader(m3u8_url=m3u8_url, video_id=video_id)
+	m3e8Loader.download(resolution=resolution, output_dir=output_dir)
+"""
 class M3E8Downloader:
 	def __init__(self, m3u8_url, video_id):
 		self.requests = requests.Session()
@@ -31,10 +40,15 @@ class M3E8Downloader:
 		m3u8_parse = m3u8.loads(m3u8_response.text)
 		return video_host, m3u8_parse
 
+	"""
+	@param resolution, 0 all resolution, 1 the first resolution, ...
+	"""
 	def download(self, resolution=0, output_dir='./output'):
 		playlist = self.m3u8_parse
 		video_host = self.video_host
 		video_id = self.video_id
+		if resolution < 0:
+			resolution = 0
 
 		if playlist.is_variant:
 			print('[+] Multiple resolutions found. Slurping all resolutions.')
