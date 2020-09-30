@@ -12,6 +12,118 @@ import re
 import ffmpeg
 import shutil
 
+class M3E8Downloader:
+	def __init__(self, m3u8_url, video_id):
+		self.requests = requests.Session()
+		self.video_id = video_id
+		self.video_host, self.m3u8_parse = self.getM3U8(m3u8_url)
+
+	"""
+	Get the M3u8 file - this is where rate limiting has been happening
+	"""
+	def getM3U8(self, m3u8_url):
+		# Get m3u8
+		m3u8_response = requests.Session().get(m3u8_url)
+
+		m3u8_url_parse = urllib.parse.urlparse(m3u8_url)
+		video_host = m3u8_url_parse.scheme + '://' + m3u8_url_parse.hostname
+
+		m3u8_parse = m3u8.loads(m3u8_response.text)
+		return video_host, m3u8_parse
+
+	def download(self, resolution=0, output_dir='./output'):
+		playlist = self.m3u8_parse
+		video_host = self.video_host
+		video_id = self.video_id
+
+		if playlist.is_variant:
+			print('[+] Multiple resolutions found. Slurping all resolutions.')
+
+			# find out the required resolution
+			resolution_playlists = []
+			if resolution == 0:
+				for plist in playlist.playlists:
+					resolution_playlists.append(plist)
+			else:
+				if resolution <= len(playlist.playlists):
+					resolution_playlists.append(playlist.playlists[resolution - 1])
+				else:
+					resolution_playlists.append(playlist.playlists[len(playlist.playlists) - 1])
+
+			for plist in resolution_playlists:
+				self.downloadM3u8(video_host=video_host, m3u8_plist=plist, video_id=video_id, output_dir=output_dir)
+
+		else:
+			print('[-] Sorry, single resolution video download is not yet implemented. Please submit a bug report with the link to the tweet.')
+
+
+	def downloadM3u8(self, video_host, m3u8_plist, video_id, output_dir='./output'):
+		resolution = str(m3u8_plist.stream_info.resolution[0]) + 'x' + str(m3u8_plist.stream_info.resolution[1])
+		video_file_name = video_id + '_' + resolution + '.mp4'
+		video_file = str(Path(output_dir) / video_file_name)
+
+		# Avoid duplicate
+		if Path.exists(Path(video_file)):
+			print('[+] Exists ' + video_file_name)
+			return video_file
+
+		cache_dir = str(Path(output_dir) / video_id)
+		Path.mkdir(Path(cache_dir), parents=True, exist_ok=True)
+
+		print('[+] Downloading ' + video_file_name)
+
+		playlist_url = video_host + m3u8_plist.uri
+		ts_m3u8_response = requests.Session().get(playlist_url, headers={'Authorization': None})
+		ts_m3u8_parse = m3u8.loads(ts_m3u8_response.text)
+
+		ts_list = []
+		for ts_uri in ts_m3u8_parse.segments.uri:
+			ts_file = requests.get(video_host + ts_uri)
+			fname = ts_uri.split('/')[-1]
+			ts_path = Path(cache_dir) / Path(fname)
+			ts_list.append(ts_path)
+
+			ts_path.write_bytes(ts_file.content)
+
+		ts_full_file = Path(cache_dir) / Path(resolution + '.ts')
+		ts_full_file = str(ts_full_file)
+
+		with open(str(ts_full_file), 'wb') as wfd:
+			for f in ts_list:
+				with open(f, 'rb') as fd:
+					shutil.copyfileobj(fd, wfd, 1024 * 1024 * 10)
+
+		print('\t[*] Doing the magic ...')
+		ffmpeg \
+			.input(ts_full_file) \
+			.output(video_file, acodec='copy', vcodec='libx264', format='mp4', loglevel='error') \
+			.overwrite_output() \
+			.run()
+
+		print('\t[+] Doing cleanup')
+
+		for ts in ts_list:
+			p = Path(ts)
+			p.unlink()
+
+		p = Path(ts_full_file)
+		p.unlink()
+
+		Path.rmdir(Path(cache_dir))
+
+		return video_file
+
+
+	def __debug(self, msg_prefix, msg_body, msg_body_full = ''):
+		if self.debug == 0:
+			return
+
+		if self.debug == 1:
+			print('[Debug] ' + '[' + msg_prefix + ']' + ' ' + msg_body)
+
+		if self.debug == 2:
+			print('[Debug+] ' + '[' + msg_prefix + ']' + ' ' + msg_body + ' - ' + msg_body_full)
+
 
 class TwitterDownloader:
 	"""
@@ -44,14 +156,7 @@ class TwitterDownloader:
 		self.tweet_data['user'] = self.tweet_data['tweet_url'].split('/')[3]
 		self.tweet_data['id'] = self.tweet_data['tweet_url'].split('/')[5]
 
-		output_path = Path(output_dir)
-		storage_dir = output_path / 'cache' / self.tweet_data['id']
-		Path.mkdir(storage_dir, parents = True, exist_ok = True)
-		self.storage = str(storage_dir)
-
-		video_dir = output_path / 'video'
-		Path.mkdir(video_dir, parents = True, exist_ok = True)
-		self.video_prefix = str(video_dir / self.tweet_data['id'])
+		self.output_dir = output_dir
 
 		self.requests = requests.Session()
 
@@ -62,85 +167,9 @@ class TwitterDownloader:
 		token = self.__get_bearer_token()
 
 		# Get the M3u8 file - this is where rate limiting has been happening
-		video_host, playlist = self.__get_playlist(token)
-
-		if playlist.is_variant:
-			print('[+] Multiple resolutions found. Slurping all resolutions.')
-
-			# find out the required resolution
-			resolution_playlists = []
-			if self.resolution == 0:
-				for plist in playlist.playlists:
-					resolution_playlists.append(plist)
-			else:
-				if self.resolution <= len(playlist.playlists):
-					resolution_playlists.append(playlist.playlists[self.resolution - 1])
-				else:
-					resolution_playlists.append(playlist.playlists[len(playlist.playlists) - 1])
-
-			for plist in resolution_playlists:
-				# 320*180 640*360 1280*720
-				resolution = str(plist.stream_info.resolution[0]) + 'x' + str(plist.stream_info.resolution[1])
-				resolution_file = Path(self.video_prefix + '_' + resolution + '.mp4')
-
-				# Avoid duplicate
-				if Path.exists(resolution_file):
-					print('[+] Exists ' + resolution)
-					continue
-
-				print('[+] Downloading ' + resolution)
-
-				playlist_url = video_host + plist.uri
-
-				ts_m3u8_response = self.requests.get(playlist_url, headers = {'Authorization': None})
-				ts_m3u8_parse = m3u8.loads(ts_m3u8_response.text)
-
-				ts_list = []
-				ts_full_file_list = []
-
-				for ts_uri in ts_m3u8_parse.segments.uri:
-					# ts_list.append(video_host + ts_uri)
-
-					ts_file = requests.get(video_host + ts_uri)
-					fname = ts_uri.split('/')[-1]
-					ts_path = Path(self.storage) / Path(fname)
-					ts_list.append(ts_path)
-
-					ts_path.write_bytes(ts_file.content)
-
-				ts_full_file = Path(self.storage) / Path(resolution + '.ts')
-				ts_full_file = str(ts_full_file)
-				ts_full_file_list.append(ts_full_file)
-
-				# Shamelessly taken from https://stackoverflow.com/questions/13613336/python-concatenate-text-files/27077437#27077437
-				with open(str(ts_full_file), 'wb') as wfd:
-					for f in ts_list:
-						with open(f, 'rb') as fd:
-							shutil.copyfileobj(fd, wfd, 1024 * 1024 * 10)
-
-
-				for ts in ts_full_file_list:
-					print('\t[*] Doing the magic ...')
-					ffmpeg\
-						.input(ts)\
-						.output(str(resolution_file), acodec = 'copy', vcodec = 'libx264', format = 'mp4', loglevel = 'error')\
-						.overwrite_output()\
-						.run()
-
-				print('\t[+] Doing cleanup')
-
-				for ts in ts_list:
-					p = Path(ts)
-					p.unlink()
-
-				for ts in ts_full_file_list:
-					p = Path(ts)
-					p.unlink()
-
-			Path.rmdir(Path(self.storage))
-
-		else:
-			print('[-] Sorry, single resolution video download is not yet implemented. Please submit a bug report with the link to the tweet.')
+		m3u8_url = self.__get_playlist(token)
+		downloader = M3E8Downloader(m3u8_url, self.tweet_data['id'])
+		downloader.download(resolution=1, output_dir=self.output_dir)
 
 
 	def __get_bearer_token(self):
@@ -176,17 +205,7 @@ class TwitterDownloader:
 			print('[-] Rate limit exceeded. Could not recover. Try again later.')
 			sys.exit(1)
 
-		# Get m3u8
-		m3u8_response = self.requests.get(m3u8_url)
-		self.__debug('M3U8 Response', '', m3u8_response.text)
-
-		m3u8_url_parse = urllib.parse.urlparse(m3u8_url)
-		video_host = m3u8_url_parse.scheme + '://' + m3u8_url_parse.hostname
-
-		m3u8_parse = m3u8.loads(m3u8_response.text)
-
-		return [video_host, m3u8_parse]
-
+		return m3u8_url
 
 	"""
 	Thanks to @devkarim for this fix: https://github.com/h4ckninja/twitter-video-downloader/issues/2#issuecomment-538773026
@@ -206,6 +225,7 @@ class TwitterDownloader:
 
 		if self.debug == 2:
 			print('[Debug+] ' + '[' + msg_prefix + ']' + ' ' + msg_body + ' - ' + msg_body_full)
+
 
 
 if __name__ == '__main__':
