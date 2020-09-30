@@ -114,17 +114,6 @@ class M3E8Downloader:
 		return video_file
 
 
-	def __debug(self, msg_prefix, msg_body, msg_body_full = ''):
-		if self.debug == 0:
-			return
-
-		if self.debug == 1:
-			print('[Debug] ' + '[' + msg_prefix + ']' + ' ' + msg_body)
-
-		if self.debug == 2:
-			print('[Debug+] ' + '[' + msg_prefix + ']' + ' ' + msg_body + ' - ' + msg_body_full)
-
-
 class TwitterDownloader:
 	"""
 	tw-dl offers the ability to download videos from Twitter feeds.
