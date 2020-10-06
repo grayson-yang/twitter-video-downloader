@@ -13,7 +13,7 @@ Usage:
 	video_id="20202020"
 	resolution=0
 	output_dir="./output
-	m3e8Loader = M3E8Downloader(m3u8_url=m3u8_url, video_id=video_id)
+	m3e8Loader = M3U8Downloader(m3u8_url=m3u8_url, video_id=video_id)
 	m3e8Loader.download(resolution=resolution, output_dir=output_dir)
 """
 class M3U8Downloader:
