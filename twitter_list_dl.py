@@ -120,7 +120,8 @@ class TwitterMediaViewer:
 
             twitter_list_json = json.loads(twitter_list_response.text)
             if twitter_list_json.get("errors") is not None:
-                continue
+                print(twitter_list_response.text)
+                break
 
             """
             # Use Cursor parameter to fetch data set
