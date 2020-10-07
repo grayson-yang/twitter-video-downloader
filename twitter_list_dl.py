@@ -12,6 +12,7 @@ class TwitterMediaViewer:
         self.requests = requests.Session()
         self.user_home_url = user_home_url
         self.screen_name = user_home_url.split('/')[3].lower()
+        print("[+] user_home_url = " + user_home_url + ", screen_name = " + self.screen_name)
 
     def get_video_list(self):
         main_js_file_response = self.__get_main_js()
@@ -19,7 +20,9 @@ class TwitterMediaViewer:
         self.__get_activate_token()
         self.__get_user_id(main_js_file_response)
         media_list = self.__get_media_list()
-        return self.__get_video_list(media_list)
+        video_list = self.__get_video_list(media_list)
+        print("\t[+] twitter count = " + str(len(media_list)) + ", including video count = " + str(len(video_list)))
+        return video_list
 
     def __get_main_js(self):
         req = self.requests
@@ -39,13 +42,13 @@ class TwitterMediaViewer:
         authorization_pattern = '[A-Za-z0-9]+%3D[A-Za-z0-9]+'
         authorization = "Bearer " + re.findall(authorization_pattern, main_js_file_response)[0]
         req.headers.update({"Authorization": authorization})
-        print("authorization:" + authorization)
+        # print("authorization:" + authorization)
 
 
     def __get_activate_token(self):
         req = self.requests
         res = req.post("https://api.twitter.com/1.1/guest/activate.json")
-        print("activate:" + res.text)
+        # print("activate:" + res.text)
         res_json = json.loads(res.text)
         req.headers.update({'x-guest-token': res_json.get('guest_token')})
 
@@ -68,7 +71,7 @@ class TwitterMediaViewer:
         # print(user_by_screen_name_response.text)
         user_by_screen_name_json = json.loads(user_by_screen_name_response.text)
         user_id = user_by_screen_name_json.get("data").get("user").get("rest_id")
-        print("user_id="+user_id)
+        print("\t[+] user_id = "+user_id)
         self.user_id = user_id
 
 
@@ -77,13 +80,15 @@ class TwitterMediaViewer:
         user_id = self.user_id
 
         count = 20
+        count_inc = 20
         result_tweets = []
         twitter_home_url = 'https://api.twitter.com/2/timeline/profile/'
         twitter_media_url = 'https://api.twitter.com/2/timeline/media/'
+        next_cursor = ""
 
         while count > 0:
             twitter_list_url = twitter_media_url
-            twitter_list_url +=  user_id + '.json'
+            twitter_list_url += user_id + '.json'
             twitter_list_url += '?include_profile_interstitial_type=1'
             twitter_list_url += '&include_blocking=1'
             twitter_list_url += '&include_blocked_by=1'
@@ -107,13 +112,35 @@ class TwitterMediaViewer:
             twitter_list_url += '&simple_quoted_tweet=true'
             twitter_list_url += '&include_tweet_replies=false'
             twitter_list_url += '&count=' + str(count)
-            # twitter_list_url += '&cursor=' + cursor
+            twitter_list_url += '' if len(next_cursor) <= 0 else '&cursor=' + next_cursor
             twitter_list_url += '&userId=' + user_id
             twitter_list_url += '&ext=mediaStats%2ChighlightedLabel'
             twitter_list_response = req.get(twitter_list_url)
 
             twitter_list_json = json.loads(twitter_list_response.text)
-            tweets_list = twitter_list_json.get("globalObjects").get("tweets");
+            if twitter_list_json.get("errors") is not None:
+                continue
+
+            """
+            # Use Cursor parameter to fetch data set
+            use cursor to get the paging data is limited. (may be login firstly)
+            can get the smaller data set than using count parameter.
+            may fetch only 160 rows only.
+            """
+            # cursor_top = cursor_bottom = ""
+            # for entry in twitter_list_json.get("timeline").get("instructions")[0].get("addEntries").get("entries"):
+            #     if entry.get("content").get("operation") is None:
+            #         continue
+            #     cursor = entry.get("content").get("operation").get("cursor")
+            #     if cursor.get("cursorType").lower() == "Top".lower():
+            #         cursor_top = cursor.get("value")
+            #     else:
+            #         if cursor.get("cursorType").lower() == "Bottom".lower():
+            #             cursor_bottom = cursor.get("value")
+            # next_cursor = cursor_bottom
+            # print("cursor_top = " + cursor_top + "; cursor_bottom = " + cursor_bottom + "; next_cursor = " + next_cursor)
+
+            tweets_list = twitter_list_json.get("globalObjects").get("tweets")
             result_tweets.clear()
             for name in tweets_list:
                 media_list = None
@@ -128,9 +155,14 @@ class TwitterMediaViewer:
                     "media_type": media_list[0].get("type") if media_list is not None else "",
                     "tweet_url": media_list[0].get("expanded_url") if media_list is not None else ""
                 })
-            print("fetching tweet count = " + str(len(result_tweets)))
+            # print("fetching tweet count = " + str(len(result_tweets)))
+            """
+            # Use Count parameter to fetch data set
+            can get a bigger data set than using Cursor parameter without login.
+            """
             if count <= len(result_tweets):
-                count += 20
+                count_inc += 20
+                count += count_inc
             else:
                 count = 0
         return result_tweets
