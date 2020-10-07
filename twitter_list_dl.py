@@ -5,6 +5,7 @@ import re
 import json
 import argparse
 from twitter_dl import TwitterDownloader
+from file_lines_access import FileLinesAccess
 
 class TwitterMediaViewer:
 
@@ -185,16 +186,17 @@ if __name__ == '__main__':
         sys.exit(1)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('tweet_url', help = 'The user home URL on Twitter (https://twitter.com/<screen_name>).')
-    parser.add_argument('-o', '--output', dest='output', default = './output', help = 'The directory to output to. The structure will be: <output>/video/.')
-    parser.add_argument('-d', '--debug', default=0, action='count', dest='debug', help = 'Debug. Add more to print out response bodies (maximum 2).')
-    parser.add_argument('-r', '--resolution', dest='resolution', default=0, help='The resolution of video. 0 = All, 1 = Low (320*180), 2 Medium (640*360), 3 High (1280*720).')
+    parser.add_argument('tweet_url', help='The user home URL on Twitter (https://twitter.com/<screen_name>).')
+    parser.add_argument('-l', '--link_file', dest='link_file', default='./video-links.txt', help='The file to store the twitter links.')
     args = parser.parse_args()
 
     mediaViewer = TwitterMediaViewer(args.tweet_url)
     video_list = mediaViewer.get_video_list()
+    video_links = []
     for video in video_list:
-        tweet_url = video["tweet_url"]
-        twitter_dl = TwitterDownloader(tweet_url, args.output, int(args.resolution), args.debug)
-        twitter_dl.download()
+        twitter_url = video["tweet_url"]
+        video_links.append(twitter_url)
+
+    file_lines_access = FileLinesAccess(args.link_file)
+    file_lines_access.saveLines(video_links)
 

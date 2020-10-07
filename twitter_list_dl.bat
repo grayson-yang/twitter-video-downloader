@@ -6,10 +6,10 @@ if not exist twitter-links.txt (
   goto end
 )
 
-rem read file, one row for each time, and read the first column as default splitted by blank space.
+rem read file, one row for each time, and read the first column as default separated by blank space.
 for /f %%i in ('type twitter-links.txt') do (
   echo %%i
-  python twitter_list_dl.py %%i -o D:\\Downloads\\twitter -r 1
+  python twitter_list_dl.py %%i
 )
 
 
