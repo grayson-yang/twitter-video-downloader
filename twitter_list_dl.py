@@ -20,6 +20,8 @@ class TwitterMediaViewer:
         self.__get_bearer_token(main_js_file_response)
         self.__get_activate_token()
         self.__get_user_id(main_js_file_response)
+        if self.user_id == '-1':
+            return []
         media_list = self.__get_media_list()
         video_list = self.__get_video_list(media_list)
         print("\t[+] twitter count = " + str(len(media_list)) + ", including video count = " + str(len(video_list)))
@@ -71,9 +73,14 @@ class TwitterMediaViewer:
         user_by_screen_name_response = req.get(user_by_screen_name_url)
         # print(user_by_screen_name_response.text)
         user_by_screen_name_json = json.loads(user_by_screen_name_response.text)
-        user_id = user_by_screen_name_json.get("data").get("user").get("rest_id")
-        print("\t[+] user_id = "+user_id)
-        self.user_id = user_id
+        if 'errors' not in user_by_screen_name_json:
+            user_id = user_by_screen_name_json.get("data").get("user").get("rest_id")
+            print("\t[+] user_id = "+user_id)
+            self.user_id = user_id
+        else:
+            self.user_id = '-1'
+            self.error = user_by_screen_name_json.get("errors")[0]
+            print("\t[+]" + "code = " + str(user_by_screen_name_json.get("errors")[0].get("code")) + ", message = " + user_by_screen_name_json.get("errors")[0].get("message"))
 
 
     def __get_media_list(self):
@@ -119,8 +126,9 @@ class TwitterMediaViewer:
             twitter_list_response = req.get(twitter_list_url)
 
             twitter_list_json = json.loads(twitter_list_response.text)
-            if twitter_list_json.get("errors") is not None:
-                print(twitter_list_response.text)
+            if "errors" in twitter_list_json:
+                self.error = twitter_list_json.get("errors")[0]
+                print("\t[+] code = " + str(twitter_list_json.get("errors")[0].get("code")) + ", message = " + twitter_list_json.get("errors")[0].get("message"))
                 break
 
             """
@@ -198,6 +206,7 @@ if __name__ == '__main__':
         twitter_url = video["tweet_url"]
         video_links.append(twitter_url)
 
-    file_lines_access = FileLinesAccess(args.link_file)
-    file_lines_access.saveLines(video_links)
+    if len(video_links) > 0:
+        file_lines_access = FileLinesAccess(args.link_file)
+        file_lines_access.saveLines(video_links)
 
