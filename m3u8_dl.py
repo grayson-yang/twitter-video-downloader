@@ -134,6 +134,7 @@ class M3U8Downloader:
 
 			ts_path.write_bytes(ts_file.content)
 
+		Path.mkdir(Path(self.cache_dir), parents=True, exist_ok=True)
 		ts_full_file = Path(self.cache_dir) / Path(resolution + '.ts')
 		ts_full_file = str(ts_full_file)
 
@@ -167,7 +168,7 @@ class M3U8Downloader:
 if __name__ == '__main__':
 	m3u8_url = "https://video.twimg.com/ext_tw_video/1033356336052850688/pu/pl/wQcHxx2l-D3fB9h7.m3u8?tag=5"
 	video_id = "1033356336052850688"
-	resolution = 1
+	resolution = 0
 	output_dir = "D:/output"
 	m3e8Loader = M3U8Downloader(m3u8_url=m3u8_url, video_id=video_id, output_dir=output_dir)
 	m3e8Loader.download(resolution=resolution)

@@ -51,7 +51,7 @@ class TwitterDownloader:
 		# Get the M3u8 file - this is where rate limiting has been happening
 		m3u8_url = self.__get_playlist(token)
 		downloader = M3U8Downloader(m3u8_url, self.tweet_data['id'], output_dir=self.output_dir)
-		downloader.download(resolution=1)
+		downloader.download(resolution=self.resolution)
 
 
 	def __get_bearer_token(self):
