@@ -27,12 +27,13 @@ def startDownload(twitter_url):
     twitter_dl.download()
 
 
-@app.route('/1.1/videos/tweet/config/<string:twitter_id>.json', methods=['GET'])
-def get_twitter_m3u8(twitter_id):
-    if len(twitter_id) <= 0:
+@app.route('/1.1/videos/tweet/get_m3u8', methods=['GET'])
+def get_twitter_m3u8():
+    twitter_link = request.args.get("twitter_link") if "twitter_link" in request.args else ""
+    if len(twitter_link) <= 0:
         abort(400)
-    # [TODO] client should transfer the full link, rather than twitter_id.
-    twitter_url = 'https://twitter.com/i/status/' + twitter_id
+    # client transfer the full link
+    twitter_url = twitter_link
     output_dir = 'D:/output'
     resolution = 0
     debug = 0

@@ -157,10 +157,13 @@ class M3U8Downloader:
 		# 	p = Path(ts)
 		# 	p.unlink()
 
-		p = Path(ts_full_file)
-		p.unlink()
+		try:
+			p = Path(ts_full_file)
+			p.unlink()
 
-		Path.rmdir(Path(self.cache_dir))
+			Path.rmdir(Path(self.cache_dir))
+		except:
+			print("\t[+] file remove errors!")
 
 		return video_file
 
