@@ -54,6 +54,18 @@ class TwitterDownloader:
 		downloader.download(resolution=self.resolution)
 
 
+	def get_playlist(self):
+		self.__debug('Tweet URL', self.tweet_data['tweet_url'])
+
+		# Get the bearer token
+		token = self.__get_bearer_token()
+
+		# Get the M3u8 file - this is where rate limiting has been happening
+		m3u8_url = self.__get_playlist(token)
+		return m3u8_url
+
+
+
 	def __get_bearer_token(self):
 		video_player_url = self.video_player_prefix + self.tweet_data['id']
 		video_player_response = self.requests.get(video_player_url).text

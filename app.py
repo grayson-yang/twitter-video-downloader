@@ -1,4 +1,7 @@
 from flask import Flask, jsonify, abort, make_response, request
+from twitter_dl import TwitterDownloader
+import urllib.parse
+import _thread
 
 app = Flask(__name__)
 
@@ -16,19 +19,39 @@ def af_request(resp):
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
 
+def startDownload(twitter_url):
+    output_dir = 'D:/output'
+    resolution = 0
+    debug = 0
+    twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
+    twitter_dl.download()
+
 
 @app.route('/1.1/videos/tweet/config/<string:twitter_id>.json', methods=['GET'])
 def get_twitter_m3u8(twitter_id):
     if len(twitter_id) <= 0:
         abort(400)
+    # [TODO] client should transfer the full link, rather than twitter_id.
+    twitter_url = 'https://twitter.com/i/status/' + twitter_id
+    output_dir = 'D:/output'
+    resolution = 0
+    debug = 0
+    twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
+    playbackUrl = twitter_dl.get_playlist()
+    print('playbackUrl = ' + playbackUrl)
+
+    m3u8_url_parse = urllib.parse.urlparse(playbackUrl)
+    video_host = 'http' + '://' + '10.154.10.111:8081' + m3u8_url_parse.path
+
     track = {
         "contentType": "media_entity",
         "durationMs": 140000,
-        "playbackUrl": "http://127.0.0.1:8081/ext_tw_video/1033356336052850688/pu/pl/wQcHxx2l-D3fB9h7.m3u8?tag=5",
+        "playbackUrl": video_host,
         "playbackType": "application/x-mpegURL"
     }
+    startDownload(twitter_url)
     return jsonify({'track': track}), 200
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='10.154.10.111', port=5000, debug=True)
