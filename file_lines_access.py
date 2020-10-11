@@ -13,6 +13,7 @@ class FileLinesAccess:
         lines = []
         Path(file).touch()
         with open(Path(file), 'r') as f1:
+            f1.seek(0, 0)
             lines = f1.readlines()
         for i in range(0, len(lines)):
             lines[i] = lines[i].rstrip('\n')
