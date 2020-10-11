@@ -38,7 +38,8 @@ def get_twitter_m3u8():
     resolution = 0
     debug = 0
     twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
-    playbackUrl = twitter_dl.get_playlist()
+    player_config = twitter_dl.get_playlist()
+    playbackUrl = player_config.get("track").get("playbackUrl")
     print('playbackUrl = ' + playbackUrl)
 
     m3u8_url_parse = urllib.parse.urlparse(playbackUrl)

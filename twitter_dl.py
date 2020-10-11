@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+from pathlib import Path
 
 import requests
 import json
@@ -37,19 +38,23 @@ class TwitterDownloader:
 		self.tweet_data['tweet_url'] = tweet_url.split('?', 1)[0]
 		self.tweet_data['user'] = self.tweet_data['tweet_url'].split('/')[3]
 		self.tweet_data['id'] = self.tweet_data['tweet_url'].split('/')[5]
+		"""
+		We use output_dir/screen_name to store the user's info.
+		"""
+		self.tweet_buffer_dir = str(Path(self.output_dir) / 'Twitter' / self.tweet_data['user'])
+		Path.mkdir(Path(self.tweet_buffer_dir), parents=True, exist_ok=True)
 
 		self.output_dir = output_dir
 
 		self.requests = requests.Session()
 
+
 	def download(self):
 		self.__debug('Tweet URL', self.tweet_data['tweet_url'])
 
-		# Get the bearer token
-		token = self.__get_bearer_token()
-
 		# Get the M3u8 file - this is where rate limiting has been happening
-		m3u8_url = self.__get_playlist(token)
+		player_config = self.get_playlist()
+		m3u8_url = player_config.get("track").get("playbackUrl")
 		downloader = M3U8Downloader(m3u8_url, self.tweet_data['id'], output_dir=self.output_dir)
 		downloader.download(resolution=self.resolution)
 
@@ -57,13 +62,21 @@ class TwitterDownloader:
 	def get_playlist(self):
 		self.__debug('Tweet URL', self.tweet_data['tweet_url'])
 
-		# Get the bearer token
-		token = self.__get_bearer_token()
+		""" check the buffer exists or not """
+		player_config = self.__get_playlist_buffer()
+		if player_config is not None:
+			return player_config
 
+		""" fetch the tweet info from twitter """
 		# Get the M3u8 file - this is where rate limiting has been happening
-		m3u8_url = self.__get_playlist(token)
-		return m3u8_url
+		player_config = self.__get_playlist()
 
+		""" store the twitter&m3u8 relationship """
+		self.__save_playlist_buffer(player_config)
+
+		# m3u8_url = player_config.get["track"].get["playbackUrl"]
+		# return m3u8_url
+		return player_config
 
 
 	def __get_bearer_token(self):
@@ -85,21 +98,46 @@ class TwitterDownloader:
 		return bearer_token
 
 
-	def __get_playlist(self, token):
+	""" check the buffer exists or not """
+	def __get_playlist_buffer(self):
+		json_file = str(Path(self.tweet_buffer_dir) / (self.tweet_data['id'] + '.json'))
+		if Path.exists(Path(json_file)):
+			with open(Path(json_file), 'r') as f1:
+				lines = f1.readlines()
+			content = ''
+			for line in lines:
+				content += line
+			player_config = json.loads(content)
+			return player_config
+		return None
+
+
+	""" store the twitter&m3u8 relationship """
+	def __save_playlist_buffer(self, player_config):
+		json_file = str(Path(self.tweet_buffer_dir) / (self.tweet_data['id'] + '.json'))
+		with open(json_file, 'a') as f:
+			f.writelines(json.dumps(player_config))
+
+
+	""" fetch the tweet info from twitter """
+	def __get_playlist(self):
+		# Get the bearer token
+		self.__get_bearer_token()
+
 		player_config_req = self.requests.get(self.video_api + self.tweet_data['id'] + '.json')
 
 		player_config = json.loads(player_config_req.text)
 
-		if 'errors' not in player_config:
-			self.__debug('Player Config JSON', '', json.dumps(player_config))
-			m3u8_url = player_config['track']['playbackUrl']
-
-		else:
+		if 'errors' in player_config:
 			self.__debug('Player Config JSON - Error', json.dumps(player_config['errors']))
 			print('[-] Rate limit exceeded. Could not recover. Try again later.')
 			sys.exit(1)
 
-		return m3u8_url
+		self.__debug('Player Config JSON', '', json.dumps(player_config))
+		track = player_config['track']
+		player_config = {"track": track}
+
+		return player_config
 
 	"""
 	Thanks to @devkarim for this fix: https://github.com/h4ckninja/twitter-video-downloader/issues/2#issuecomment-538773026
