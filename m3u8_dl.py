@@ -55,7 +55,7 @@ class M3U8Downloader:
 	"""
 	@param resolution, 0 all resolution, 1 the first resolution, ...
 	"""
-	def download(self, resolution=0):
+	def download(self, resolution=0, save_as_mp4=False):
 		playlist = self.m3u8_parse
 		video_host = self.video_host
 		if resolution < 0:
@@ -77,7 +77,8 @@ class M3U8Downloader:
 
 			for plist in filtered_playlists:
 				resolution_str, ts_list = self.downloadM3u8(video_host=video_host, m3u8_plist=plist)
-				self.merge_ts_files(resolution_str, ts_list)
+				if save_as_mp4 is True:
+					self.merge_ts_files(resolution_str, ts_list)
 
 		else:
 			print('[-] Sorry, single resolution video download is not yet implemented. Please submit a bug report with the link to the tweet.')
