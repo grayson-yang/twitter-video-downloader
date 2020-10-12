@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 import json
 import re
-from m3u8_dl import M3U8Downloader
+from library.m3u8_dl import M3U8Downloader
 
 class TwitterDownloader:
 	"""

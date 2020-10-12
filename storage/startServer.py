@@ -13,7 +13,7 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
 
 def StartServer():
 	port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-	sever = HTTPServer(("", port), CORSRequestHandler)
+	sever = HTTPServer(("10.154.10.111", port), CORSRequestHandler)
 	sever.serve_forever()
 
 	

@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, abort, make_response, request
-from twitter_dl import TwitterDownloader
+from library.twitter_dl import TwitterDownloader
 import urllib.parse
-import _thread
 
 app = Flask(__name__)
 
@@ -21,7 +20,7 @@ def not_found(error):
 
 def startDownload(twitter_url):
     output_dir = 'D:/output'
-    resolution = 0
+    resolution = 1
     debug = 0
     twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
     twitter_dl.download()
@@ -35,7 +34,7 @@ def get_twitter_m3u8():
     # client transfer the full link
     twitter_url = twitter_link
     output_dir = 'D:/output'
-    resolution = 0
+    resolution = 1
     debug = 0
     twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
     player_config = twitter_dl.get_playlist()

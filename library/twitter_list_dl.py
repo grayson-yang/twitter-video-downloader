@@ -4,8 +4,7 @@ import requests
 import re
 import json
 import argparse
-from twitter_dl import TwitterDownloader
-from file_lines_access import FileLinesAccess
+from library.file_lines_access import FileLinesAccess
 
 class TwitterMediaViewer:
 
