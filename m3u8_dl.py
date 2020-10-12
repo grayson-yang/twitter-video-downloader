@@ -22,9 +22,6 @@ class M3U8Downloader:
 		self.requests = requests.Session()
 		self.video_id = video_id
 		self.output_dir = output_dir
-		cache_dir = str(Path(self.output_dir) / video_id)
-		self.cache_dir = cache_dir
-		Path.mkdir(Path(cache_dir), parents=True, exist_ok=True)
 
 		self.video_host, self.m3u8_parse = self.getM3U8Summary(m3u8_url)
 
@@ -157,8 +154,9 @@ class M3U8Downloader:
 			return video_file
 
 		print('\t\t\t[+] Generating ' + video_file)
-		Path.mkdir(Path(self.cache_dir), parents=True, exist_ok=True)
-		ts_full_file = Path(self.cache_dir) / Path(resolution_str + '.ts')
+		cache_dir = str(Path(self.output_dir) / self.video_id)
+		Path.mkdir(Path(cache_dir), parents=True, exist_ok=True)
+		ts_full_file = Path(cache_dir) / Path(resolution_str + '.ts')
 		ts_full_file = str(ts_full_file)
 
 		with open(str(ts_full_file), 'wb') as wfd:
@@ -184,7 +182,7 @@ class M3U8Downloader:
 			p = Path(ts_full_file)
 			p.unlink()
 
-			Path.rmdir(Path(self.cache_dir))
+			Path.rmdir(Path(cache_dir))
 		except:
 			print("\t[+] file remove errors!")
 
@@ -197,4 +195,4 @@ if __name__ == '__main__':
 	resolution = 0
 	output_dir = "D:/output"
 	m3e8Loader = M3U8Downloader(m3u8_url=m3u8_url, video_id=video_id, output_dir=output_dir)
-	m3e8Loader.download(resolution=resolution)
+	m3e8Loader.download(resolution=resolution, save_as_mp4=True)
