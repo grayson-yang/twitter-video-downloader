@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from pathlib import Path
 
 import requests
 import re
@@ -8,10 +9,11 @@ from library.file_lines_access import FileLinesAccess
 
 class TwitterMediaViewer:
 
-    def __init__(self, user_home_url):
+    def __init__(self, user_home_url, output_dir='./output'):
         self.requests = requests.Session()
         self.user_home_url = user_home_url
         self.screen_name = user_home_url.split('/')[3].lower()
+        self.output_dir = output_dir
         print("[+] user_home_url = " + user_home_url + ", screen_name = " + self.screen_name)
 
     def get_video_list(self):
@@ -21,10 +23,30 @@ class TwitterMediaViewer:
         self.__get_user_id(main_js_file_response)
         if self.user_id == '-1':
             return []
-        media_list = self.__get_media_list()
-        video_list = self.__get_video_list(media_list)
-        print("\t[+] twitter count = " + str(len(media_list)) + ", including video count = " + str(len(video_list)))
+
+        users, tweets = self.__get_media_list()
+
+        # store the users into ~/Twitter/lower(<screen_name>/user.json
+        users_file_path = Path(self.output_dir) / 'Twitter' / self.screen_name
+        Path.mkdir(users_file_path, parents=True, exist_ok=True)
+        users_file = str(users_file_path / 'user.json')
+        self.__save_data(users_file, json.dumps(users[self.user_id]))
+        # store the tweets into ~/Twitter/lower(<screen_name>/tweets/<tweet_id>.json
+        tweet_file_path = Path(self.output_dir) / 'Twitter' / self.screen_name / 'tweets'
+        Path.mkdir(tweet_file_path, parents=True, exist_ok=True)
+        for tweet_id in tweets:
+            tweet_file = str(tweet_file_path / (tweet_id + '.json'))
+            self.__save_data(tweet_file, json.dumps(tweets[tweet_id]))
+
+        video_list = self.__get_video_list(tweets)
+        print("\t[+] twitter count = " + str(len(tweets)) + ", including video count = " + str(len(video_list)))
         return video_list
+
+
+
+    def __save_data(self, file, content):
+        with open(file, 'w') as f:
+            f.writelines(content)
 
     def __get_main_js(self):
         req = self.requests
@@ -88,7 +110,6 @@ class TwitterMediaViewer:
 
         count = 20
         count_inc = 20
-        result_tweets = []
         twitter_home_url = 'https://api.twitter.com/2/timeline/profile/'
         twitter_media_url = 'https://api.twitter.com/2/timeline/media/'
         next_cursor = ""
@@ -150,36 +171,38 @@ class TwitterMediaViewer:
             # print("cursor_top = " + cursor_top + "; cursor_bottom = " + cursor_bottom + "; next_cursor = " + next_cursor)
 
             tweets_list = twitter_list_json.get("globalObjects").get("tweets")
-            result_tweets.clear()
-            for name in tweets_list:
-                media_list = None
-                if tweets_list[name].get("extended_entities") is not None:
-                    media_list = tweets_list[name].get("extended_entities").get("media")
-                result_tweets.append({
-                    "tweet_id": tweets_list[name].get("id_str"),
-                    "full_text": tweets_list[name].get("full_text"),
-                    "user_id": tweets_list[name].get("user_id_str"),
-                    "created_at": tweets_list[name].get("created_at"),
-                    # media_type = video, photo
-                    "media_type": media_list[0].get("type") if media_list is not None else "",
-                    "tweet_url": media_list[0].get("expanded_url") if media_list is not None else ""
-                })
-            # print("fetching tweet count = " + str(len(result_tweets)))
+            user = twitter_list_json.get("globalObjects").get('users')
             """
             # Use Count parameter to fetch data set
             can get a bigger data set than using Cursor parameter without login.
             """
-            if count <= len(result_tweets):
+            if count <= len(tweets_list):
                 count_inc += 20
                 count += count_inc
             else:
                 count = 0
-        return result_tweets
+        return user, tweets_list
 
 
-    def __get_video_list(self, media_list):
+    def __get_video_list(self, tweets):
+
+        result_list = []
+        for name in tweets:
+            media_list = None
+            if tweets[name].get("extended_entities") is not None:
+                media_list = tweets[name].get("extended_entities").get("media")
+            result_list.append({
+                "tweet_id": tweets[name].get("id_str"),
+                "full_text": tweets[name].get("full_text"),
+                "user_id": tweets[name].get("user_id_str"),
+                "created_at": tweets[name].get("created_at"),
+                # media_type = video, photo
+                "media_type": media_list[0].get("type") if media_list is not None else "",
+                "tweet_url": media_list[0].get("expanded_url") if media_list is not None else ""
+            })
+
         video_list = []
-        for tweet in media_list:
+        for tweet in result_list:
             if tweet.get("media_type") == 'video':
                 video_list.append(tweet)
 
@@ -198,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--link_file', dest='link_file', default='./video-links.txt', help='The file to store the twitter links.')
     args = parser.parse_args()
 
-    mediaViewer = TwitterMediaViewer(args.tweet_url)
+    mediaViewer = TwitterMediaViewer(args.tweet_url, 'D:/output')
     video_list = mediaViewer.get_video_list()
     video_links = []
     for video in video_list:
