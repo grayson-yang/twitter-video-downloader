@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 from pathlib import Path
 
 import requests
@@ -16,13 +17,13 @@ class TwitterMediaViewer:
         self.output_dir = output_dir
         print("[+] user_home_url = " + user_home_url + ", screen_name = " + self.screen_name)
 
-    def get_video_list(self):
+    def get_tweets_from_twitter(self):
         main_js_file_response = self.__get_main_js()
         self.__get_bearer_token(main_js_file_response)
         self.__get_activate_token()
         self.__get_user_id(main_js_file_response)
         if self.user_id == '-1':
-            return []
+            return {}
 
         users, tweets = self.__get_media_list()
 
@@ -38,10 +39,26 @@ class TwitterMediaViewer:
             tweet_file = str(tweet_file_path / (tweet_id + '.json'))
             self.__save_data(tweet_file, json.dumps(tweets[tweet_id]))
 
-        video_list = self.__get_video_list(tweets)
-        print("\t[+] twitter count = " + str(len(tweets)) + ", including video count = " + str(len(video_list)))
-        return video_list
+        return tweets
 
+
+    def get_tweets_from_disk(self):
+        print('\t[+] Fetching tweets from disk.')
+        folder = Path(self.output_dir) / 'Twitter' / self.screen_name / 'tweets'
+        files = os.listdir(folder)
+        tweets = {}
+        for filename in files:
+            try:
+                with open(folder / filename, 'r') as f:
+                    f.seek(0, 0)
+                    lines = f.readlines()
+                content = ''
+                for line in lines:
+                    content += line
+                tweets[filename.split('.')[0]] = json.loads(content)
+            except:
+                print('\t[+] Read Error: ' + str(folder / filename))
+        return tweets
 
 
     def __save_data(self, file, content):
@@ -105,6 +122,8 @@ class TwitterMediaViewer:
 
 
     def __get_media_list(self):
+        print('\t[+] Fetching tweets from Twitter.')
+
         req = self.requests
         user_id = self.user_id
 
@@ -184,7 +203,7 @@ class TwitterMediaViewer:
         return user, tweets_list
 
 
-    def __get_video_list(self, tweets):
+    def filter_tweets_video(self, tweets):
 
         result_list = []
         for name in tweets:
@@ -206,6 +225,7 @@ class TwitterMediaViewer:
             if tweet.get("media_type") == 'video':
                 video_list.append(tweet)
 
+        print("\t[+] twitter count = " + str(len(tweets)) + ", including video count = " + str(len(video_list)))
         return video_list
 
 
@@ -222,7 +242,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     mediaViewer = TwitterMediaViewer(args.tweet_url, 'D:/output')
-    video_list = mediaViewer.get_video_list()
+    tweets = mediaViewer.get_tweets_from_twitter()
+    video_list = mediaViewer.filter_tweets_video(tweets)
+
+    tweets = mediaViewer.get_tweets_from_disk()
+    video_list = mediaViewer.filter_tweets_video(tweets)
+
     video_links = []
     for video in video_list:
         twitter_url = video["tweet_url"]
