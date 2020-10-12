@@ -39,9 +39,9 @@ class TwitterDownloader:
 		self.tweet_data['user'] = self.tweet_data['tweet_url'].split('/')[3]
 		self.tweet_data['id'] = self.tweet_data['tweet_url'].split('/')[5]
 		"""
-		We use output_dir/screen_name to store the user's info.
+		We use <output_dir>/Twitter/lower(<screen_name>)/media to store the user's info.
 		"""
-		self.tweet_buffer_dir = str(Path(self.output_dir) / 'Twitter' / self.tweet_data['user'])
+		self.tweet_buffer_dir = str(Path(self.output_dir) / 'Twitter' / self.tweet_data['user'].lower() / 'media')
 		Path.mkdir(Path(self.tweet_buffer_dir), parents=True, exist_ok=True)
 
 		self.output_dir = output_dir
