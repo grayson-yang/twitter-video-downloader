@@ -40,27 +40,26 @@ def get_twitter_m3u8():
     debug = 0
     twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
     player_config = twitter_dl.get_playlist()
-    if 'errors' in player_config is False:
-        playbackUrl = player_config.get("track").get("playbackUrl")
-        print('playbackUrl = ' + playbackUrl)
 
-        m3u8_url_parse = urllib.parse.urlparse(playbackUrl)
-        video_host = 'http' + '://' + '10.154.10.111:8081' + m3u8_url_parse.path
+    playbackUrl = player_config.get("track").get("playbackUrl")
+    print('playbackUrl = ' + playbackUrl)
 
-        track = {
-            "contentType": "media_entity",
-            "durationMs": 140000,
-            "playbackUrl": video_host,
-            "playbackType": "application/x-mpegURL"
-        }
-        startDownload(twitter_url)
-        return jsonify({'track': track}), 200
-    else:
-        return jsonify(player_config.get('errors')), 404
+    m3u8_url_parse = urllib.parse.urlparse(playbackUrl)
+    video_host = 'http' + '://' + '10.154.10.111:8081' + m3u8_url_parse.path
+
+    track = {
+        "contentType": "media_entity",
+        "durationMs": 140000,
+        "playbackUrl": video_host,
+        "playbackType": "application/x-mpegURL"
+    }
+    startDownload(twitter_url)
+    return jsonify({'track': track}), 200
 
 
 @app.route('/2/timeline/media/<string:screen_name>.json', methods=['GET'])
 def get_media_tweets(screen_name):
+    print('get_media_tweets for ' + screen_name)
     twitter_home_url = 'https://twitter.com/'
     screen_name_url = twitter_home_url + screen_name
 
