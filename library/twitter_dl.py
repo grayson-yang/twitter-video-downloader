@@ -60,6 +60,9 @@ class TwitterDownloader:
 		downloader.download(resolution=self.resolution)
 
 
+	"""
+	@return None if not exists
+	"""
 	def get_playlist(self):
 		self.__debug('Tweet URL', self.tweet_data['tweet_url'])
 		print('[+] Checking playlist of ' + self.tweet_data['tweet_url'])
@@ -73,8 +76,9 @@ class TwitterDownloader:
 		# Get the M3u8 file - this is where rate limiting has been happening
 		player_config = self.__get_playlist()
 
-		""" store the twitter&m3u8 relationship """
-		self.__save_playlist_buffer(player_config)
+		if 'errors' in player_config is False:
+			""" store the twitter&m3u8 relationship """
+			self.__save_playlist_buffer(player_config)
 
 		# m3u8_url = player_config.get["track"].get["playbackUrl"]
 		# return m3u8_url
@@ -131,16 +135,20 @@ class TwitterDownloader:
 
 		player_config_req = self.requests.get(self.video_api + self.tweet_data['id'] + '.json')
 
-		player_config = json.loads(player_config_req.text)
+		try:
+			player_config = json.loads(player_config_req.text)
 
-		if 'errors' in player_config:
-			self.__debug('Player Config JSON - Error', json.dumps(player_config['errors']))
-			print('[-] Rate limit exceeded. Could not recover. Try again later.')
-			sys.exit(1)
+			if 'errors' in player_config:
+				self.__debug('Player Config JSON - Error', json.dumps(player_config['errors']))
+				print('[-] Rate limit exceeded. Could not recover. Try again later.')
+				sys.exit(1)
 
-		self.__debug('Player Config JSON', '', json.dumps(player_config))
-		track = player_config['track']
-		player_config = {"track": track}
+			self.__debug('Player Config JSON', '', json.dumps(player_config))
+			track = player_config['track']
+			player_config = {"track": track}
+		except:
+			print('\t[+] Playlist Error: ' + player_config_req.text)
+			player_config = {'errors': player_config_req.text}
 
 		return player_config
 
