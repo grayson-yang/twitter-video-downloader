@@ -6,7 +6,6 @@ import requests
 import re
 import json
 import argparse
-from library.file_lines_access import FileLinesAccess
 
 class TwitterMediaViewer:
 
