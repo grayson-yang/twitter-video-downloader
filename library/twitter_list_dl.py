@@ -45,6 +45,8 @@ class TwitterMediaViewer:
     def get_tweets_from_disk(self):
         print('\t[+] Fetching tweets from disk.')
         folder = Path(self.output_dir) / 'Twitter' / self.screen_name / 'tweets'
+        if Path.exists(folder) is False:
+            return None
         files = os.listdir(folder)
         tweets = {}
         for filename in files:
@@ -245,9 +247,6 @@ if __name__ == '__main__':
     tweets = mediaViewer.get_tweets_from_twitter()
     video_list = mediaViewer.filter_tweets_video(tweets)
 
-    tweets = mediaViewer.get_tweets_from_disk()
-    video_list = mediaViewer.filter_tweets_video(tweets)
-
     video_links = []
     for video in video_list:
         twitter_url = video["tweet_url"]
@@ -257,3 +256,6 @@ if __name__ == '__main__':
         file_lines_access = FileLinesAccess(args.link_file)
         file_lines_access.saveLines(video_links)
 
+    tweets = mediaViewer.get_tweets_from_disk()
+    if tweets is None:
+        video_list = mediaViewer.filter_tweets_video(tweets)
