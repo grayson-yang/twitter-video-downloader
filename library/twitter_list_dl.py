@@ -251,9 +251,9 @@ if __name__ == '__main__':
         twitter_url = video["tweet_url"]
         video_links.append(twitter_url)
 
-    if len(video_links) > 0:
-        file_lines_access = FileLinesAccess(args.link_file)
-        file_lines_access.saveLines(video_links)
+    # if len(video_links) > 0:
+    #     file_lines_access = FileLinesAccess(args.link_file)
+    #     file_lines_access.saveLines(video_links)
 
     tweets = mediaViewer.get_tweets_from_disk()
     if tweets is None:
