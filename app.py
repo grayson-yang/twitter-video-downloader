@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, jsonify, abort, make_response, request
 from library.twitter_dl import TwitterDownloader
 import urllib.parse
@@ -22,7 +24,7 @@ def not_found(error):
 
 def startDownload(twitter_url):
     output_dir = 'D:/output'
-    resolution = 1
+    resolution = 0
     debug = 0
     twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
     twitter_dl.download()
@@ -69,6 +71,19 @@ def get_media_tweets(screen_name):
         return jsonify({'tweets': []})
     video_list = media_viewer.filter_tweets_video(tweets)
     return jsonify({'tweets': video_list})
+
+
+@app.route('/1/twitter/white_list.json', methods=['GET'])
+def get_twitter_white_list():
+    with open('document/white_list.json', 'r') as f:
+        f.seek(0, 0)
+        lines = f.readlines()
+    content = ''
+    for line in lines:
+        content += line
+
+    white_list = json.loads(content)
+    return jsonify({'white_list': white_list})
 
 
 if __name__ == '__main__':
