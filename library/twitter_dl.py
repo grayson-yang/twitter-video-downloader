@@ -116,14 +116,20 @@ class TwitterDownloader:
 				content += line
 			try:
 				player_config = json.loads(content)
+				print('\t[+] PlayList : ' + json.dumps(player_config))
+				if 'errors' in player_config:
+					return None
+				return player_config
 			except:
 				print('content = ' + content)
-			return player_config
 		return None
 
 
 	""" store the twitter&m3u8 relationship """
 	def __save_playlist_buffer(self, player_config):
+		if 'errors' in player_config:
+			self.__debug('Response Error!', json.dumps(player_config))
+			return None
 		json_file = str(Path(self.tweet_buffer_dir) / (self.tweet_data['id'] + '.json'))
 		with open(json_file, 'w') as f:
 			f.writelines(json.dumps(player_config))
