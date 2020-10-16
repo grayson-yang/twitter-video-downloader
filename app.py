@@ -61,9 +61,22 @@ def get_twitter_m3u8():
 __cache_media_tweets = {}
 
 
+def parseToInt(value, default, positive=True):
+    value = default if value is None else value;
+    try:
+        value = int(value)
+    except:
+        value = default
+    value = abs(value) if positive is True else value
+    return value;
+
+
 @app.route('/2/timeline/media/<string:screen_name>.json', methods=['GET'])
 def get_media_tweets(screen_name):
     print('get_media_tweets for ' + screen_name)
+
+    cursor = parseToInt(request.args.get("cursor"), 0)
+    count = parseToInt(request.args.get("count"), 10)
 
     if screen_name.lower() in __cache_media_tweets:
         print('find cache for ' + screen_name)
@@ -80,7 +93,17 @@ def get_media_tweets(screen_name):
             return jsonify({'tweets': []})
         video_list = media_viewer.filter_tweets_video(tweets)
         __cache_media_tweets[screen_name.lower()] = video_list
-    return jsonify({'tweets': video_list})
+    if cursor >= len(video_list):
+        return jsonify({'tweets': {}, 'cursor': -1})
+    capacity = len(video_list) - cursor
+    count = capacity if count > capacity else count
+    video_list = video_list[cursor:cursor + count]
+    result_dict = {}
+    for video in video_list:
+        result_dict[video.get('tweet_id')] = video
+    next_cursor = cursor + count
+    response = make_response(jsonify({'tweets': result_dict, 'cursor': next_cursor}))
+    return response
 
 
 @app.route('/1/twitter/white_list.json', methods=['GET'])
