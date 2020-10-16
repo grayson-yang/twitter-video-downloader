@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import datetime
 import os
 from pathlib import Path
 
@@ -204,6 +205,13 @@ class TwitterMediaViewer:
         return user, tweets_list
 
 
+    def get_sort_value(self, media):
+        str_p = media.get('created_at')
+        # 'Wed Oct 07 16:59:07 +0000 2020' <==> '%a %b %d %H:%M:%S %z %Y'
+        dateTime_p = datetime.datetime.strptime(str_p, '%a %b %d %H:%M:%S %z %Y')
+        return dateTime_p
+
+
     def filter_tweets_video(self, tweets):
 
         result_list = []
@@ -225,7 +233,7 @@ class TwitterMediaViewer:
         for tweet in result_list:
             if tweet.get("media_type") == 'video':
                 video_list.append(tweet)
-
+        video_list.sort(key=self.get_sort_value, reverse=True)
         print("\t[+] twitter count = " + str(len(tweets)) + ", including video count = " + str(len(video_list)))
         return video_list
 

@@ -57,19 +57,29 @@ def get_twitter_m3u8():
     return jsonify(player_config), 200
 
 
+""" cache for get_media_tweets API """
+__cache_media_tweets = {}
+
+
 @app.route('/2/timeline/media/<string:screen_name>.json', methods=['GET'])
 def get_media_tweets(screen_name):
     print('get_media_tweets for ' + screen_name)
-    twitter_home_url = 'https://twitter.com/'
-    screen_name_url = twitter_home_url + screen_name
 
-    media_viewer = TwitterMediaViewer(screen_name_url, 'D:/output')
-    tweets = media_viewer.get_tweets_from_disk()
-    if tweets is None:
-        tweets = media_viewer.get_tweets_from_twitter()
-    if tweets is None:
-        return jsonify({'tweets': []})
-    video_list = media_viewer.filter_tweets_video(tweets)
+    if screen_name.lower() in __cache_media_tweets:
+        print('find cache for ' + screen_name)
+        video_list = __cache_media_tweets[screen_name.lower()]
+    else:
+        twitter_home_url = 'https://twitter.com/'
+        screen_name_url = twitter_home_url + screen_name
+
+        media_viewer = TwitterMediaViewer(screen_name_url, 'D:/output')
+        tweets = media_viewer.get_tweets_from_disk()
+        if tweets is None:
+            tweets = media_viewer.get_tweets_from_twitter()
+        if tweets is None:
+            return jsonify({'tweets': []})
+        video_list = media_viewer.filter_tweets_video(tweets)
+        __cache_media_tweets[screen_name.lower()] = video_list
     return jsonify({'tweets': video_list})
 
 
