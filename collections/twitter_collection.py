@@ -9,9 +9,13 @@ import time
 
 from flask import json
 
+from library.twitter_dl import TwitterDownloader
+from library.twitter_list_dl import TwitterMediaViewer
+
 
 class AbstractCollection(threading.Thread):
     next_time = 0
+
     def __init__(self, timer):
         threading.Thread.__init__(self)
         self.timer = timer
@@ -29,7 +33,11 @@ class AbstractCollection(threading.Thread):
         self.next_time = value
 
 
-class WhiteListCollection(AbstractCollection):
+class WhiteListCollection(threading.Thread):
+
+    def __init__(self, timer):
+        threading.Thread.__init__(self)
+        self.timer = timer
 
     def get_white_list(self):
         with open('../document/white_list.json', 'r') as f:
@@ -56,8 +64,6 @@ class WhiteListCollection(AbstractCollection):
     def get_name(self):
         return 'WhiteList_Collection'
 
-    def get_delay(self):
-        return 10
 
 
 class TwitterCollection(AbstractCollection):
@@ -75,6 +81,25 @@ class TwitterCollection(AbstractCollection):
         localtime = time.asctime(time.localtime(time.time()))
         print(localtime + ' - Collection [' + self.get_name() + '] collecting data.')
         # TODO: execute Twitter API.
+        twitter_url = 'https://twitter.com/' + self.screen_name
+        mediaViewer = TwitterMediaViewer(twitter_url, 'D:/output')
+        tweets = mediaViewer.get_tweets_from_twitter()
+        video_list = mediaViewer.filter_tweets_video(tweets)
+
+        video_links = []
+        for video in video_list:
+            tweet_url = video["tweet_url"]
+            video_links.append(tweet_url)
+
+        output_dir = 'D:/output'
+        resolution = 0
+        debug = 1
+        for tweet_url in video_links:
+            try:
+                twitter_dl = TwitterDownloader(tweet_url, output_dir, resolution, debug)
+                twitter_dl.download()
+            except ValueError:
+                print('Error: ' + ValueError)
         self.after_run()
 
     def after_run(self):
@@ -87,6 +112,8 @@ class TwitterCollection(AbstractCollection):
     def get_name(self):
         return self.screen_name + '_Collection'
 
+    def get_delay(self):
+        return 60 * 60
 
 class ScheduleTimer(threading.Thread):
 
@@ -117,7 +144,7 @@ class ScheduleTimer(threading.Thread):
         task = self.scheduled.get()
         if task is None:
             return
-        print(json.dumps(task))
+        # print(json.dumps(task))
         try:
             twitterDownload = TwitterCollection(self, task["screen_name"])
             twitterDownload.start()
