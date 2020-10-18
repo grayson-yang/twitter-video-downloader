@@ -18,7 +18,7 @@ class TwitterCollection(AbstractCollection):
     def run(self):
         localtime = time.asctime(time.localtime(time.time()))
         print(localtime + ' - Collection [' + self.get_name() + '] collecting data.')
-        # TODO: execute Twitter API.
+        # execute Twitter API.
         twitter_url = 'https://twitter.com/' + self.screen_name
         mediaViewer = TwitterMediaViewer(twitter_url, 'D:/output')
         tweets = mediaViewer.get_tweets_from_twitter()
