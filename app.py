@@ -22,13 +22,6 @@ def af_request(resp):
 def not_found(error):
     return make_response(jsonify({'error': 'Not found'}), 404)
 
-def startDownload(twitter_url):
-    output_dir = 'D:/output'
-    resolution = 0
-    debug = 1
-    twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
-    twitter_dl.download()
-
 
 @app.route('/1.1/videos/tweet/get_m3u8', methods=['GET'])
 def get_twitter_m3u8():
@@ -37,22 +30,9 @@ def get_twitter_m3u8():
         abort(400)
     # client transfer the full link
     twitter_url = twitter_link
-    output_dir = 'D:/output'
-    resolution = 1
-    debug = 1
-    twitter_dl = TwitterDownloader(twitter_url, output_dir, resolution, debug)
-    player_config = twitter_dl.get_playlist()
-
-    if player_config is not None and player_config.get("track") is not None and player_config.get("track").get("playbackUrl") is not None:
-
-        playbackUrl = player_config.get("track").get("playbackUrl")
-        print('playbackUrl = ' + playbackUrl)
-
-        m3u8_url_parse = urllib.parse.urlparse(playbackUrl)
-        video_host = 'http' + '://' + '10.154.10.111:8081' + m3u8_url_parse.path
-        player_config.get("track")["playbackUrl"] = video_host
-
-        startDownload(twitter_url)
+    output_dir = "D:/output"
+    twitter_dl = TwitterDownloader(twitter_url, output_dir=output_dir)
+    player_config = twitter_dl.get_playlist_buffer()
 
     return jsonify(player_config), 200
 
@@ -68,7 +48,7 @@ def parseToInt(value, default, positive=True):
     except:
         value = default
     value = abs(value) if positive is True else value
-    return value;
+    return value
 
 
 @app.route('/2/timeline/media/<string:screen_name>.json', methods=['GET'])
@@ -84,11 +64,9 @@ def get_media_tweets(screen_name):
     else:
         twitter_home_url = 'https://twitter.com/'
         screen_name_url = twitter_home_url + screen_name
-
-        media_viewer = TwitterMediaViewer(screen_name_url, 'D:/output')
+        output_dir = 'D:/output'
+        media_viewer = TwitterMediaViewer(screen_name_url, output_dir=output_dir)
         tweets = media_viewer.get_tweets_from_disk()
-        if tweets is None:
-            tweets = media_viewer.get_tweets_from_twitter()
         if tweets is None:
             return jsonify({'tweets': []})
         video_list = media_viewer.filter_tweets_video(tweets)

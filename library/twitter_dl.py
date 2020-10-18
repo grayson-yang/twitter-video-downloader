@@ -19,7 +19,7 @@ class TwitterDownloader:
 	video_api = 'https://api.twitter.com/1.1/videos/tweet/config/'
 	tweet_data = {}
 
-	def __init__(self, tweet_url, output_dir = './output', resolution = 0, debug = 0):
+	def __init__(self, tweet_url, output_dir='./output', resolution=0, debug=0):
 		self.tweet_url = tweet_url
 		self.output_dir = output_dir
 		self.debug = debug
@@ -68,7 +68,7 @@ class TwitterDownloader:
 		print('[+] Checking playlist of ' + self.tweet_data['tweet_url'])
 
 		""" check the buffer exists or not """
-		player_config = self.__get_playlist_buffer()
+		player_config = self.get_playlist_buffer()
 		if player_config is not None:
 			return player_config
 
@@ -104,7 +104,7 @@ class TwitterDownloader:
 
 
 	""" check the buffer exists or not """
-	def __get_playlist_buffer(self):
+	def get_playlist_buffer(self):
 		json_file = str(Path(self.tweet_buffer_dir) / (self.tweet_data['id'] + '.json'))
 		if Path.exists(Path(json_file)):
 			print('\t[+] Exists ' + json_file)
