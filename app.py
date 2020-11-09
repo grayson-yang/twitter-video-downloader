@@ -33,7 +33,10 @@ def get_twitter_m3u8():
     output_dir = "D:/output"
     twitter_dl = TwitterDownloader(twitter_url, output_dir=output_dir)
     player_config = twitter_dl.get_playlist_buffer()
+    playbackUrl = player_config["track"]["playbackUrl"]
 
+    playbackUrl = "http://10.154.10.111:8081" + urllib.parse.urlparse(playbackUrl).path
+    player_config["track"]["playbackUrl"] = playbackUrl
     return jsonify(player_config), 200
 
 
