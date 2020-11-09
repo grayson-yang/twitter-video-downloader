@@ -7,6 +7,7 @@ import requests
 import re
 import json
 import argparse
+import urllib.parse
 
 class TwitterMediaViewer:
 
@@ -16,6 +17,28 @@ class TwitterMediaViewer:
         self.screen_name = user_home_url.split('/')[3].lower()
         self.output_dir = output_dir
         print("[+] user_home_url = " + user_home_url + ", screen_name = " + self.screen_name)
+
+
+    """
+    True if file exists or download successfully.
+    """
+    def save_picture(self, picture_url):
+        print('\t[+] Picture URL : ' + picture_url)
+        try:
+            picture_uri = urllib.parse.urlparse(picture_url).path
+
+            if Path.exists(Path(self.output_dir) / picture_uri[1:]) is True:
+                return True
+
+            picture_response = self.requests.get(picture_url)
+            Path.mkdir(Path(self.output_dir) / picture_uri[1:picture_uri.rindex('/')], parents=True, exist_ok=True)
+            with open(Path(self.output_dir) / picture_uri[1:], 'wb') as f:
+                f.write(picture_response.content)
+            return True
+        except IOError:
+            print("Error : " + IOError)
+            return False
+
 
     def get_tweets_from_twitter(self):
         main_js_file_response = self.__get_main_js()
@@ -217,6 +240,14 @@ class TwitterMediaViewer:
         result_list = []
         for name in tweets:
             media_list = None
+            media_url = None
+            try:
+                media_url = tweets[name].get("entities")
+                if media_url is not None: media_url = media_url.get("media")
+                if media_url is not None: media_url = media_url[0]
+                if media_url is not None: media_url = media_url.get("media_url")
+            except ValueError:
+                print('Error: ' + ValueError)
             if tweets[name].get("extended_entities") is not None:
                 media_list = tweets[name].get("extended_entities").get("media")
             result_list.append({
@@ -225,6 +256,7 @@ class TwitterMediaViewer:
                 "user_id": tweets[name].get("user_id_str"),
                 "created_at": tweets[name].get("created_at"),
                 # media_type = video, photo
+                "media_url": media_url if media_url is not None else "",
                 "media_type": media_list[0].get("type") if media_list is not None else "",
                 "tweet_url": media_list[0].get("expanded_url") if media_list is not None else ""
             })
@@ -233,6 +265,7 @@ class TwitterMediaViewer:
         for tweet in result_list:
             if tweet.get("media_type") == 'video':
                 video_list.append(tweet)
+                self.save_picture(tweet.get("media_url"))
         video_list.sort(key=self.get_sort_value, reverse=True)
         print("\t[+] twitter count = " + str(len(tweets)) + ", including video count = " + str(len(video_list)))
         return video_list
