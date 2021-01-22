@@ -9,6 +9,21 @@ import json
 import argparse
 import urllib.parse
 
+"""
+Usage:
+    tweet_url = "https://twitter.com/TwitterDev"
+    output = 'D:/output'
+    mediaViewer = TwitterMediaViewer(user_home_url = tweet_url, output_dir = output)
+    tweets = mediaViewer.get_tweets_from_twitter()
+    video_list = mediaViewer.filter_tweets_video(tweets)
+
+    video_links = []
+    for video in video_list:
+        twitter_url = video["tweet_url"]
+        video_links.append(twitter_url)
+"""
+
+
 class TwitterMediaViewer:
 
     def __init__(self, user_home_url, output_dir='./output'):
@@ -18,10 +33,10 @@ class TwitterMediaViewer:
         self.output_dir = output_dir
         print("[+] user_home_url = " + user_home_url + ", screen_name = " + self.screen_name)
 
-
     """
     True if file exists or download successfully.
     """
+
     def save_picture(self, picture_url):
         print('\t[+] Picture URL : ' + picture_url)
         try:
@@ -38,7 +53,6 @@ class TwitterMediaViewer:
         except IOError:
             print("Error : " + IOError)
             return False
-
 
     def get_tweets_from_twitter(self):
         main_js_file_response = self.__get_main_js()
@@ -64,7 +78,6 @@ class TwitterMediaViewer:
 
         return tweets
 
-
     def get_tweets_from_disk(self):
         print('\t[+] Fetching tweets from disk.')
         folder = Path(self.output_dir) / 'Twitter' / self.screen_name / 'tweets'
@@ -84,7 +97,6 @@ class TwitterMediaViewer:
             except:
                 print('\t[+] Read Error: ' + str(folder / filename))
         return tweets
-
 
     def __save_data(self, file, content):
         with open(file, 'w') as f:
@@ -107,43 +119,55 @@ class TwitterMediaViewer:
 
         authorization_pattern = '[A-Za-z0-9]+%3D[A-Za-z0-9]+'
         authorization = "Bearer " + re.findall(authorization_pattern, main_js_file_response)[0]
+        print('[+] Authorization is : ' + authorization)
         req.headers.update({"Authorization": authorization})
-        # print("authorization:" + authorization)
-
 
     def __get_activate_token(self):
         req = self.requests
-        res = req.post("https://api.twitter.com/1.1/guest/activate.json")
-        # print("activate:" + res.text)
-        res_json = json.loads(res.text)
-        req.headers.update({'x-guest-token': res_json.get('guest_token')})
+        try:
+            res = req.post("https://api.twitter.com/1.1/guest/activate.json")
+            print("[+] Activate: " + res.text)
+            res_json = json.loads(res.text)
+            guest_token = res_json.get('guest_token')
+            req.headers.update({'x-guest-token': guest_token})
+            print('[+] x-guest-token : ' + guest_token)
+        except:
+            print('[+] __get_activate_token Errors')
 
     def __get_user_id(self, main_js_file_response):
         req = self.requests
         screen_name = self.screen_name
 
         variables_dict = '{"screen_name":"' + screen_name + '","withHighlightedLabel":true}'
-        variables_str = 'variables=' + str(variables_dict).replace(' ', '').replace('{', '%7B').replace('\"', '%22').replace(':', '%3A').replace(',', '%2C').replace('}', '%7D')
-        # print("UserByScreenName Param:" + variables_str)
-        user_by_screen_name_prefix_pattern = '\\{queryId:\\"[a-zA-Z]+-_[a-zA-Z0-9]+\\",operationName:\\"UserByScreenName\\",operationType:\\"query\\"\\}'
-        user_by_screen_name_prefix = re.findall(user_by_screen_name_prefix_pattern, main_js_file_response)[0]
-        user_by_screen_name_prefix = str(user_by_screen_name_prefix).replace("queryId", "\"queryId\"").replace("operationName", "\"operationName\"").replace("operationType", "\"operationType\"")
-        # print("user_by_screen_name_prefix:" + user_by_screen_name_prefix)
+        variables_str = 'variables=' + str(variables_dict).replace(' ', '').replace('{', '%7B').replace('\"','%22').replace(':', '%3A').replace(',', '%2C').replace('}', '%7D')
+        print("UserByScreenName Param:" + variables_str)
+        # user_by_screen_name_prefix_pattern = '\\{queryId:\\"[a-zA-Z]+[-]*_[a-zA-Z0-9]+\\",operationName:\\"ViewerTeams\\",operationType:\\"query\\"\\}'
+        user_by_screen_name_prefix_pattern = '\\{queryId:\\"[a-zA-Z0-9_-]+\\",operationName:\\"UserByScreenName\\",operationType:\\"query\\"\\}'
+        regular_match_list = re.findall(user_by_screen_name_prefix_pattern, main_js_file_response)
+        if len(regular_match_list) <= 0:
+            print('[+] Error: could not find Screen Name.')
+        user_by_screen_name_prefix = regular_match_list[0]
+        user_by_screen_name_prefix = str(user_by_screen_name_prefix).replace("queryId", "\"queryId\"").replace(
+            "operationName", "\"operationName\"").replace("operationType", "\"operationType\"")
+        print("[+] Find Screen Name JSON : " + user_by_screen_name_prefix)
         user_by_screen_name_prefix_json = json.loads(user_by_screen_name_prefix)
-        user_by_screen_name_url = "https://api.twitter.com/graphql/" + user_by_screen_name_prefix_json.get("queryId") + "/UserByScreenName?" + variables_str
-        # print("UserByScreenName URL:" + user_by_screen_name_url)
+        user_by_screen_name_url = "https://twitter.com/i/api/graphql/" + user_by_screen_name_prefix_json.get("queryId") + "/UserByScreenName?" + variables_str
+        print("[+] Requesting URL to get User ID : " + user_by_screen_name_url)
         req.headers.update({"content-type": "application/json"})
+
+        # req.headers.update({"x-twitter-active-user": "yes", "x-twitter-auth-type": "OAuth2Session"})
         user_by_screen_name_response = req.get(user_by_screen_name_url)
-        # print(user_by_screen_name_response.text)
+        print(user_by_screen_name_response.text)
         user_by_screen_name_json = json.loads(user_by_screen_name_response.text)
         if 'errors' not in user_by_screen_name_json:
             user_id = user_by_screen_name_json.get("data").get("user").get("rest_id")
-            print("\t[+] user_id = "+user_id)
+            print("\t[+] user_id = " + user_id)
             self.user_id = user_id
         else:
             self.user_id = '-1'
             self.error = user_by_screen_name_json.get("errors")[0]
-            print("\t[+]" + "code = " + str(user_by_screen_name_json.get("errors")[0].get("code")) + ", message = " + user_by_screen_name_json.get("errors")[0].get("message"))
+            print("\t[+] " + "code = " + str(user_by_screen_name_json.get("errors")[0].get("code")) + ", message = " +
+                  user_by_screen_name_json.get("errors")[0].get("message"))
 
 
     def __get_media_list(self):
@@ -192,7 +216,8 @@ class TwitterMediaViewer:
             twitter_list_json = json.loads(twitter_list_response.text)
             if "errors" in twitter_list_json:
                 self.error = twitter_list_json.get("errors")[0]
-                print("\t[+] code = " + str(twitter_list_json.get("errors")[0].get("code")) + ", message = " + twitter_list_json.get("errors")[0].get("message"))
+                print("\t[+] code = " + str(twitter_list_json.get("errors")[0].get("code")) + ", message = " +
+                      twitter_list_json.get("errors")[0].get("message"))
                 break
 
             """
@@ -227,13 +252,11 @@ class TwitterMediaViewer:
                 count = 0
         return user, tweets_list
 
-
     def get_sort_value(self, media):
         str_p = media.get('created_at')
         # 'Wed Oct 07 16:59:07 +0000 2020' <==> '%a %b %d %H:%M:%S %z %Y'
         dateTime_p = datetime.datetime.strptime(str_p, '%a %b %d %H:%M:%S %z %Y')
         return dateTime_p
-
 
     def filter_tweets_video(self, tweets):
 
@@ -272,18 +295,9 @@ class TwitterMediaViewer:
 
 
 if __name__ == '__main__':
-    import sys
-
-    if sys.version_info[0] == 2:
-        print('Python3 is required.')
-        sys.exit(1)
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('tweet_url', help='The user home URL on Twitter (https://twitter.com/<screen_name>).')
-    parser.add_argument('-l', '--link_file', dest='link_file', default='./video-links.txt', help='The file to store the twitter links.')
-    args = parser.parse_args()
-
-    mediaViewer = TwitterMediaViewer(args.tweet_url, 'D:/output')
+    tweet_url = "https://twitter.com/TwitterDev"
+    output = 'D:/output'
+    mediaViewer = TwitterMediaViewer(user_home_url=tweet_url, output_dir=output)
     tweets = mediaViewer.get_tweets_from_twitter()
     video_list = mediaViewer.filter_tweets_video(tweets)
 
@@ -291,11 +305,3 @@ if __name__ == '__main__':
     for video in video_list:
         twitter_url = video["tweet_url"]
         video_links.append(twitter_url)
-
-    # if len(video_links) > 0:
-    #     file_lines_access = FileLinesAccess(args.link_file)
-    #     file_lines_access.saveLines(video_links)
-
-    tweets = mediaViewer.get_tweets_from_disk()
-    if tweets is None:
-        video_list = mediaViewer.filter_tweets_video(tweets)
