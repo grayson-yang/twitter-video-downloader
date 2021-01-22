@@ -8,6 +8,16 @@ import json
 import re
 from library.m3u8_dl import M3U8Downloader
 
+"""
+Usage:
+	tweet_url = "https://twitter.com/TwitterDev/status/1293593516040269825"
+	output = "D:/output"
+	resolution = 0
+	debug = 0
+	twitter_dl = TwitterDownloader(tweet_url = tweet_url, output_dir = output, resolution = resolution, debug = debug)
+	twitter_dl.download()
+"""
+
 class TwitterDownloader:
 	"""
 	tw-dl offers the ability to download videos from Twitter feeds.
@@ -19,10 +29,11 @@ class TwitterDownloader:
 	video_api = 'https://api.twitter.com/1.1/videos/tweet/config/'
 	tweet_data = {}
 
-	def __init__(self, tweet_url, output_dir='./output', resolution=0, debug=0):
+	def __init__(self, tweet_url, output_dir='./output', resolution=0, debug=0, save_as_mp4=True):
 		self.tweet_url = tweet_url
 		self.output_dir = output_dir
 		self.debug = debug
+		self.save_as_mp4 = save_as_mp4
 		if resolution < 0:
 			resolution = 0
 		self.resolution = resolution
@@ -57,7 +68,7 @@ class TwitterDownloader:
 		m3u8_url = player_config.get("track").get("playbackUrl")
 		print('\t[+] Playlist is ' + m3u8_url)
 		downloader = M3U8Downloader(m3u8_url, self.tweet_data['id'], output_dir=self.output_dir)
-		downloader.download(resolution=self.resolution)
+		downloader.download(resolution=self.resolution, save_as_mp4=self.save_as_mp4)
 
 
 	"""
@@ -152,8 +163,8 @@ class TwitterDownloader:
 				sys.exit(1)
 
 			self.__debug('Player Config JSON', '', json.dumps(player_config))
-			track = player_config['track']
-			player_config = {"track": track}
+			# track = player_config['track']
+			# player_config = {"track": track}
 		except:
 			print('\t[+] Playlist Error: ' + player_config_req.text)
 			player_config = {'errors': player_config_req.text}
@@ -182,18 +193,9 @@ class TwitterDownloader:
 
 
 if __name__ == '__main__':
-	import sys
-
-	if sys.version_info[0] == 2:
-		print('Python3 is required.')
-		sys.exit(1)
-
-	parser = argparse.ArgumentParser()
-	parser.add_argument('tweet_url', help = 'The video URL on Twitter (https://twitter.com/<user>/status/<id>).')
-	parser.add_argument('-o', '--output', dest='output', default = './output', help = 'The directory to output to. The structure will be: <output>/video/.')
-	parser.add_argument('-d', '--debug', default=0, action='count', dest='debug', help = 'Debug. Add more to print out response bodies (maximum 2).')
-	parser.add_argument('-r', '--resolution', dest='resolution', default=0, help='The resolution of video. 0 = All, 1 = Low (320*180), 2 Medium (640*360), 3 High (1280*720).')
-	args = parser.parse_args()
-
-	twitter_dl = TwitterDownloader(args.tweet_url, args.output, int(args.resolution), args.debug)
+	tweet_url = "https://twitter.com/TwitterDev/status/1293593516040269825"
+	output = "D:/output"
+	resolution = 0
+	debug = 0
+	twitter_dl = TwitterDownloader(tweet_url = tweet_url, output_dir = output, resolution = resolution, debug = debug, save_as_mp4 = True)
 	twitter_dl.download()

@@ -13,8 +13,9 @@ Usage:
 	video_id = "wQcHxx2l-D3fB9h7"
 	resolution = 1
 	output_dir = "./output"
+	save_as_mp4 = True
 	m3e8Loader = M3U8Downloader(m3u8_url=m3u8_url, video_id=video_id)
-	m3e8Loader.download(resolution=resolution, output_dir=output_dir)
+	m3e8Loader.download(resolution=resolution, output_dir=output_dir, save_as_mp4=save_as_mp4)
 """
 class M3U8Downloader:
 
@@ -132,9 +133,10 @@ class M3U8Downloader:
 		ts_list = []
 		print('\t\t[+] Checking segments')
 		for ts_uri in ts_m3u8_parse.segments.uri:
-			ts_dir = ts_uri[1:ts_uri.rindex('/')]
+			ts_parse = urllib.parse.urlparse(ts_uri)
+			ts_dir = ts_parse.path[1:ts_uri.rindex('/')]
 			Path.mkdir(Path(self.output_dir) / ts_dir, parents=True, exist_ok=True)
-			ts_path = Path(self.output_dir) / ts_uri[1:]
+			ts_path = Path(self.output_dir) / ts_parse.path[1:]
 			if Path.exists(ts_path) is False:
 				ts_file = requests.get(video_host + ts_uri)
 				ts_path.write_bytes(ts_file.content)
