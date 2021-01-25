@@ -147,7 +147,9 @@ class M3U8Downloader:
 
 	def merge_ts_files(self, resolution_str, ts_list):
 		video_file_name = self.video_id + '_' + resolution_str + '.mp4'
-		video_file = str(Path(self.output_dir) / video_file_name)
+		mp4_dir = Path(self.output_dir) / 'video'
+		Path.mkdir(mp4_dir, parents=True, exist_ok=True)
+		video_file = str(mp4_dir / video_file_name)
 		print('\t\t[+] Checking ' + video_file)
 
 		# Avoid duplicate
