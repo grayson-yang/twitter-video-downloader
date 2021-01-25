@@ -67,7 +67,7 @@ class TwitterDownloader:
 		player_config = self.get_playlist()
 		m3u8_url = player_config.get("track").get("playbackUrl")
 		print('\t[+] Playlist is ' + m3u8_url)
-		downloader = M3U8Downloader(m3u8_url, self.tweet_data['id'], output_dir=self.output_dir)
+		downloader = M3U8Downloader(m3u8_url, self.tweet_data['id'], output_dir=self.output_dir, video_dir=self.tweet_buffer_dir, download_duration=10)
 		downloader.download(resolution=self.resolution, save_as_mp4=self.save_as_mp4)
 
 

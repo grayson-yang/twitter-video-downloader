@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import time
 
 import requests
 import urllib.parse
@@ -19,11 +20,12 @@ Usage:
 """
 class M3U8Downloader:
 
-	def __init__(self, m3u8_url, video_id, output_dir='./output'):
+	def __init__(self, m3u8_url, video_id, output_dir='./output', video_dir='./output', download_duration = 1):
 		self.requests = requests.Session()
 		self.video_id = video_id
 		self.output_dir = output_dir
-
+		self.download_duration = download_duration
+		self.video_dir = video_dir;
 		self.video_host, self.m3u8_parse = self.getM3U8Summary(m3u8_url)
 
 
@@ -139,6 +141,7 @@ class M3U8Downloader:
 			ts_path = Path(self.output_dir) / ts_parse.path[1:]
 			if Path.exists(ts_path) is False:
 				ts_file = requests.get(video_host + ts_uri)
+				time.sleep(self.download_duration)
 				ts_path.write_bytes(ts_file.content)
 			ts_list.append(ts_path)
 
@@ -147,9 +150,7 @@ class M3U8Downloader:
 
 	def merge_ts_files(self, resolution_str, ts_list):
 		video_file_name = self.video_id + '_' + resolution_str + '.mp4'
-		mp4_dir = Path(self.output_dir) / 'video'
-		Path.mkdir(mp4_dir, parents=True, exist_ok=True)
-		video_file = str(mp4_dir / video_file_name)
+		video_file = str(Path(self.video_dir) / video_file_name)
 		print('\t\t[+] Checking ' + video_file)
 
 		# Avoid duplicate
