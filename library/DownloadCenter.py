@@ -55,7 +55,7 @@ if __name__ == '__main__':
     screen_name = args.screen_name
     output = args.output
     # 0 All, 1 Low, 2 Medium, 3 High
-    resolution = args.resolution
+    resolution = int(args.resolution)
     debug = int(args.debug)
     save_as_mp4 = True
 
