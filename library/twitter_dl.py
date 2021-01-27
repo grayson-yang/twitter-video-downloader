@@ -60,14 +60,19 @@ class TwitterDownloader:
 		self.requests = requests.Session()
 
 
-	def download(self):
+	def download(self, download_duration=10):
 		self.__debug('Tweet URL', self.tweet_data['tweet_url'])
 
 		# Get the M3u8 file - this is where rate limiting has been happening
 		player_config = self.get_playlist()
+
+		if player_config is None or player_config.get("track") is None:
+			print('[+] Error: The media could not be played.')
+			return
+
 		m3u8_url = player_config.get("track").get("playbackUrl")
 		print('\t[+] Playlist is ' + m3u8_url)
-		downloader = M3U8Downloader(m3u8_url, self.tweet_data['id'], output_dir=self.output_dir, video_dir=self.tweet_buffer_dir, download_duration=10)
+		downloader = M3U8Downloader(m3u8_url, self.tweet_data['id'], output_dir=self.output_dir, video_dir=self.tweet_buffer_dir, download_duration=download_duration)
 		downloader.download(resolution=self.resolution, save_as_mp4=self.save_as_mp4)
 
 
@@ -90,8 +95,9 @@ class TwitterDownloader:
 		""" store the twitter&m3u8 relationship """
 		self.__save_playlist_buffer(player_config)
 
-		# m3u8_url = player_config.get["track"].get["playbackUrl"]
-		# return m3u8_url
+		if player_config is None:
+			print('[+] The media could not be played.')
+
 		return player_config
 
 

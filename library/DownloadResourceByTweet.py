@@ -59,6 +59,8 @@ class DownloadResourceByTweet:
     def download_tweets_video_picture(self, tweets):
 
         result_list = []
+        if tweets is None:
+            return False
         for name in tweets:
             media_list = None
             media_url = None
@@ -94,6 +96,8 @@ class DownloadResourceByTweet:
     def filter_tweets_video(self, tweets):
 
         result_list = []
+        if tweets is None:
+            return result_list
         for name in tweets:
             media_list = None
             media_url = None
