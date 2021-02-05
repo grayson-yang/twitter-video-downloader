@@ -49,6 +49,8 @@ if __name__ == '__main__':
                         help='Debug. Add more to print out response bodies (maximum 2).')
     parser.add_argument('-r', '--resolution', dest='resolution', default=0,
                         help='The resolution of video. 0 = All, 1 = Low (320*180), 2 Medium (640*360), 3 High (1280*720).')
+    parser.add_argument("-s", '--sleep', dest='sleep', default=10,
+                        help='The milliseconds while downloading ts files. Default is 10 milliseconds.')
     args = parser.parse_args()
 
     tweet_url = "https://twitter.com/" + args.screen_name
@@ -57,6 +59,7 @@ if __name__ == '__main__':
     # 0 All, 1 Low, 2 Medium, 3 High
     resolution = int(args.resolution)
     debug = int(args.debug)
+    download_duration = int(args.sleep)
     save_as_mp4 = True
 
-    download(screen_name=screen_name, output=output, resolution=resolution, debug=debug, save_as_mp4=True, download_duration=100)
+    download(screen_name=screen_name, output=output, resolution=resolution, debug=debug, save_as_mp4=True, download_duration=download_duration)
