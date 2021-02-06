@@ -6,6 +6,7 @@ from pathlib import Path
 import requests
 import json
 import urllib.parse
+import time
 
 class DownloadResourceByTweet:
 
@@ -89,6 +90,7 @@ class DownloadResourceByTweet:
             if tweet.get("media_type") == 'video':
                 video_list.append(tweet)
                 self.save_picture(tweet.get("media_url"))
+                time.sleep(10)
         video_list.sort(key=self.get_sort_value, reverse=True)
         print("\t[+] twitter count = " + str(len(tweets)) + ", including video count = " + str(len(video_list)))
         return True

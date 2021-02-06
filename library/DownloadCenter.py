@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from pathlib import Path
+
 from library.DownloadResourceByTweet import DownloadResourceByTweet
 from library.twitter_dl import TwitterDownloader
 from library.twitter_list_dl import TwitterMediaViewer
@@ -62,4 +64,18 @@ if __name__ == '__main__':
     download_duration = int(args.sleep)
     save_as_mp4 = True
 
-    download(screen_name=screen_name, output=output, resolution=resolution, debug=debug, save_as_mp4=True, download_duration=download_duration)
+    sceen_name_list = screen_name.split(',')
+    for screen_name in sceen_name_list:
+        screen_name = screen_name.strip(' ')
+        if len(screen_name) > 0:
+            try:
+                download(screen_name=screen_name, output=output, resolution=resolution, debug=debug, save_as_mp4=True, download_duration=download_duration)
+            except:
+                paramStr = "screen_name=" + screen_name + ", output=" + str(output) + ", resolution=" + str(
+                    resolution) + ", debug=" + str(debug) + ", save_as_mp4=" + str(
+                    save_as_mp4) + ", download_duration=" + download_duration
+                errorMsg = "Occurs exception, please dig out. Params : " + paramStr
+                logFile = Path(output) / "DownloadCenter-log.log"
+                with open(logFile, 'a') as f:
+                    f.writelines('\n')
+                    f.writelines(errorMsg)
