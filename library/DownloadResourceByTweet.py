@@ -15,12 +15,21 @@ class DownloadResourceByTweet:
         self.screen_name = str.lower(screen_name)
         self.output_dir = output_dir
 
+    def check_picture(self, picture_url):
+        print('\t[+] Checking Picture URL : ' + picture_url)
+        picture_uri = urllib.parse.urlparse(picture_url).path
+        exists = False
+        if Path.exists(Path(self.output_dir) / picture_uri[1:]) is True:
+            exists = True
+        print('\t[+] ' + 'Exists [' + str(exists) + '], Picture URL : ' + picture_url)
+        return exists
+
     """
     True if file exists or download successfully.
     """
 
     def save_picture(self, picture_url):
-        print('\t[+] Picture URL : ' + picture_url)
+        # print('\t[+] Picture URL : ' + picture_url)
         try:
             picture_uri = urllib.parse.urlparse(picture_url).path
 
@@ -89,8 +98,10 @@ class DownloadResourceByTweet:
         for tweet in result_list:
             if tweet.get("media_type") == 'video':
                 video_list.append(tweet)
-                self.save_picture(tweet.get("media_url"))
-                time.sleep(10)
+                picture_url = tweet.get("media_url")
+                if self.check_picture(picture_url) is not True:
+                    self.save_picture(tweet.get("media_url"))
+                    time.sleep(10)
         video_list.sort(key=self.get_sort_value, reverse=True)
         print("\t[+] twitter count = " + str(len(tweets)) + ", including video count = " + str(len(video_list)))
         return True
