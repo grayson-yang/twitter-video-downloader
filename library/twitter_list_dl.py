@@ -33,13 +33,14 @@ class TwitterMediaViewer:
         self.user_home_url = user_home_url
         self.screen_name = user_home_url.split('/')[3].lower()
         self.output_dir = output_dir
+        self.main_js = {}
         print("[+] user_home_url = " + user_home_url + ", screen_name = " + self.screen_name)
 
     def get_tweets_from_twitter(self):
         main_js_file_response = self.__get_main_js()
         self.__get_bearer_token(main_js_file_response)
         self.__get_activate_token()
-        self.__get_user_id(main_js_file_response)
+        self.__get_user_id()
         if self.user_id == '-1':
             return {}
 
@@ -63,6 +64,37 @@ class TwitterMediaViewer:
         with open(file, 'w') as f:
             f.writelines(content)
 
+    def __analyze_main_js(self, main_js_content):
+        # Query Id for Screen Name
+        regular_pattern = '\\{queryId:\\"[a-zA-Z0-9_-]+\\",operationName:\\"UserByScreenName\\",operationType:\\"query\\"\\}'
+        regular_match_list = re.findall(regular_pattern, main_js_content)
+        if len(regular_match_list) <= 0:
+            print('[+] Error: could not find queryId for Screen Name.')
+        else:
+            match_item = regular_match_list[0]
+            match_item = str(match_item).replace("queryId", "\"queryId\"").replace(
+                "operationName", "\"operationName\"").replace("operationType", "\"operationType\"")
+            print("[+] Find Screen Name JSON : " + match_item)
+            temp_json = json.loads(match_item)
+            queryId = temp_json.get("queryId")
+            self.main_js["screen_name.queryId"] = queryId
+
+        # Query Id for Following
+        regular_pattern = '\\{queryId:\\"[a-zA-Z0-9_-]+\\",operationName:\\"Following\\",operationType:\\"query\\"\\}'
+        regular_match_list = re.findall(regular_pattern, main_js_content)
+        if len(regular_match_list) <= 0:
+            print('[+] Error: could not find queryId for Following.')
+        else:
+            match_item = regular_match_list[0]
+            match_item = str(match_item).replace("queryId", "\"queryId\"").replace(
+                "operationName", "\"operationName\"").replace("operationType", "\"operationType\"")
+            print("[+] Find Screen Name JSON : " + match_item)
+            temp_json = json.loads(match_item)
+            queryId = temp_json.get("queryId")
+            self.main_js["following.queryId"] = queryId
+
+        return True
+
     def __get_main_js(self):
         req = self.requests
         user_home_url = self.user_home_url
@@ -73,6 +105,9 @@ class TwitterMediaViewer:
         main_js_pattern = 'https://abs.twimg.com/responsive-web/client-web/main.*.js'
         main_js_file_url = re.findall(main_js_pattern, user_home_response)[0]
         main_js_file_response = req.get(main_js_file_url).text
+
+        self.__analyze_main_js(main_js_content=main_js_file_response)
+
         return main_js_file_response
 
     def __get_bearer_token(self, main_js_file_response):
@@ -95,24 +130,15 @@ class TwitterMediaViewer:
         except:
             print('[+] __get_activate_token Errors')
 
-    def __get_user_id(self, main_js_file_response):
+    def __get_user_id(self):
         req = self.requests
         screen_name = self.screen_name
 
         variables_dict = '{"screen_name":"' + screen_name + '","withHighlightedLabel":true}'
         variables_str = 'variables=' + str(variables_dict).replace(' ', '').replace('{', '%7B').replace('\"','%22').replace(':', '%3A').replace(',', '%2C').replace('}', '%7D')
         print("UserByScreenName Param:" + variables_str)
-        # user_by_screen_name_prefix_pattern = '\\{queryId:\\"[a-zA-Z]+[-]*_[a-zA-Z0-9]+\\",operationName:\\"ViewerTeams\\",operationType:\\"query\\"\\}'
-        user_by_screen_name_prefix_pattern = '\\{queryId:\\"[a-zA-Z0-9_-]+\\",operationName:\\"UserByScreenName\\",operationType:\\"query\\"\\}'
-        regular_match_list = re.findall(user_by_screen_name_prefix_pattern, main_js_file_response)
-        if len(regular_match_list) <= 0:
-            print('[+] Error: could not find Screen Name.')
-        user_by_screen_name_prefix = regular_match_list[0]
-        user_by_screen_name_prefix = str(user_by_screen_name_prefix).replace("queryId", "\"queryId\"").replace(
-            "operationName", "\"operationName\"").replace("operationType", "\"operationType\"")
-        print("[+] Find Screen Name JSON : " + user_by_screen_name_prefix)
-        user_by_screen_name_prefix_json = json.loads(user_by_screen_name_prefix)
-        user_by_screen_name_url = "https://twitter.com/i/api/graphql/" + user_by_screen_name_prefix_json.get("queryId") + "/UserByScreenName?" + variables_str
+
+        user_by_screen_name_url = "https://twitter.com/i/api/graphql/" + self.main_js.get("screen_name.queryId") + "/UserByScreenName?" + variables_str
         print("[+] Requesting URL to get User ID : " + user_by_screen_name_url)
         req.headers.update({"content-type": "application/json"})
 
