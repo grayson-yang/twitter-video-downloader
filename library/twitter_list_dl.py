@@ -43,7 +43,7 @@ class TwitterMediaViewer:
         self.__get_user_id()
         if self.user_id == '-1':
             return {}
-
+        self.__get_following_list()
         users, tweets = self.__get_media_list()
 
         # store the users into ~/Twitter/lower(<screen_name>/user.json
@@ -65,6 +65,7 @@ class TwitterMediaViewer:
             f.writelines(content)
 
     def __analyze_main_js(self, main_js_content):
+        # UserByScreenName, Following, Followers
         # Query Id for Screen Name
         regular_pattern = '\\{queryId:\\"[a-zA-Z0-9_-]+\\",operationName:\\"UserByScreenName\\",operationType:\\"query\\"\\}'
         regular_match_list = re.findall(regular_pattern, main_js_content)
@@ -88,7 +89,7 @@ class TwitterMediaViewer:
             match_item = regular_match_list[0]
             match_item = str(match_item).replace("queryId", "\"queryId\"").replace(
                 "operationName", "\"operationName\"").replace("operationType", "\"operationType\"")
-            print("[+] Find Screen Name JSON : " + match_item)
+            print("[+] Find Following JSON : " + match_item)
             temp_json = json.loads(match_item)
             queryId = temp_json.get("queryId")
             self.main_js["following.queryId"] = queryId
@@ -117,6 +118,7 @@ class TwitterMediaViewer:
         authorization = "Bearer " + re.findall(authorization_pattern, main_js_file_response)[0]
         print('[+] Authorization is : ' + authorization)
         req.headers.update({"Authorization": authorization})
+        self.authorization = authorization
 
     def __get_activate_token(self):
         req = self.requests
@@ -130,13 +132,17 @@ class TwitterMediaViewer:
         except:
             print('[+] __get_activate_token Errors')
 
+    def __parse_request_variables(self, variables):
+        variables = str(variables).replace(' ', '').replace('{', '%7B').replace('\"','%22').replace(':', '%3A').replace(',', '%2C').replace('}', '%7D')
+        return variables
+
     def __get_user_id(self):
         req = self.requests
         screen_name = self.screen_name
 
         variables_dict = '{"screen_name":"' + screen_name + '","withHighlightedLabel":true}'
-        variables_str = 'variables=' + str(variables_dict).replace(' ', '').replace('{', '%7B').replace('\"','%22').replace(':', '%3A').replace(',', '%2C').replace('}', '%7D')
-        print("UserByScreenName Param:" + variables_str)
+        variables_str = 'variables=' + self.__parse_request_variables(variables_dict)
+        print("[+] UserByScreenName Param:" + variables_str)
 
         user_by_screen_name_url = "https://twitter.com/i/api/graphql/" + self.main_js.get("screen_name.queryId") + "/UserByScreenName?" + variables_str
         print("[+] Requesting URL to get User ID : " + user_by_screen_name_url)
@@ -239,6 +245,32 @@ class TwitterMediaViewer:
                 count = 0
         return user, tweets_list
 
+    def __get_following_list(self):
+        req = self.requests
+        user_id = self.user_id
+        variables_json = {
+            "userId": user_id,
+            "count": 20,
+            "withHighlightedLabel": False,
+            "withTweetQuoteCount": False,
+            "includePromotedContent": False,
+            "withTweetResult": False,
+            "withUserResult": True
+        }
+        variables = json.dumps(variables_json)
+        print('\t[+] variables : ' + variables)
+        variables = self.__parse_request_variables(variables)
+        host = "https://twitter.com"
+        queryPath = "/i/api/graphql/" + self.main_js["following.queryId"] + "/Following?variables=" + variables
+        requestUrl = host + queryPath
+        print('\t[+] Following List : ' + requestUrl)
+        print('\t[+] Authorization is : ' + req.headers["Authorization"])
+
+        # req.headers.update({"x-csrf-token": "99207d169ca26a7c5ecee8e8a94c16fb651aadd4ed9a3f6525d972bcfcd453d238497a7e866e7e6edda318f48d26c26aa120c23fa559d66bc19fbb7dc75e0f31ef981465e893f2106d8d5d5d00ee1bae"})
+        # req.headers.update({"x-twitter-active-user": "yes", "x-twitter-auth-type": "OAuth2Session", "x-twitter-client-language": "zh-cn"})
+
+        following_api_response = req.get(requestUrl)
+        print(following_api_response.text)
 
 if __name__ == '__main__':
     tweet_url = "https://twitter.com/TwitterDev"
