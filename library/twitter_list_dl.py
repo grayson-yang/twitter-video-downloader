@@ -100,8 +100,9 @@ class TwitterMediaViewer:
         req = self.requests
         user_home_url = self.user_home_url
 
-        req.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"})
-        user_home_response = req.get(user_home_url).text;
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36"
+        req.headers.update({"User-Agent": user_agent})
+        user_home_response = req.get(user_home_url).text
 
         main_js_pattern = 'https://abs.twimg.com/responsive-web/client-web/main.*.js'
         main_js_file_url = re.findall(main_js_pattern, user_home_response)[0]
@@ -133,7 +134,9 @@ class TwitterMediaViewer:
             print('[+] __get_activate_token Errors')
 
     def __parse_request_variables(self, variables):
-        variables = str(variables).replace(' ', '').replace('{', '%7B').replace('\"','%22').replace(':', '%3A').replace(',', '%2C').replace('}', '%7D')
+        parseMap = {' ': '', '{': '%7B', '\"': '%22', ':': '%3A', ',': '%2C', '}': '%7D'}
+        for key in parseMap:
+            variables = str(variables).replace(key, parseMap[key])
         return variables
 
     def __get_user_id(self):
@@ -144,7 +147,9 @@ class TwitterMediaViewer:
         variables_str = 'variables=' + self.__parse_request_variables(variables_dict)
         print("[+] UserByScreenName Param:" + variables_str)
 
-        user_by_screen_name_url = "https://twitter.com/i/api/graphql/" + self.main_js.get("screen_name.queryId") + "/UserByScreenName?" + variables_str
+        host = 'https://twitter.com'
+        path = "/i/api/graphql/" + self.main_js.get("screen_name.queryId") + "/UserByScreenName?" + variables_str
+        user_by_screen_name_url = host + path
         print("[+] Requesting URL to get User ID : " + user_by_screen_name_url)
         req.headers.update({"content-type": "application/json"})
 
@@ -161,7 +166,6 @@ class TwitterMediaViewer:
             self.error = user_by_screen_name_json.get("errors")[0]
             print("\t[+] " + "code = " + str(user_by_screen_name_json.get("errors")[0].get("code")) + ", message = " +
                   user_by_screen_name_json.get("errors")[0].get("message"))
-
 
     def __get_media_list(self):
         print('\t[+] Fetching tweets from Twitter.')
@@ -272,6 +276,33 @@ class TwitterMediaViewer:
         following_api_response = req.get(requestUrl)
         print(following_api_response.text)
 
+    def __submit_all(self):
+        variableMap = {'include_profile_interstitial_type': 1,
+                       'include_blocking': 1,
+                       'include_blocked_by': 1,
+                       'include_followed_by': 1,
+                       'include_want_retweets': 1,
+                       'include_mute_edge': 1,
+                       'include_can_dm': 1,
+                       'include_can_media_tag': 1,
+                       'skip_status': 1,
+                       'cards_platform': 'Web-12',
+                       'include_cards': 1,
+                       'include_ext_alt_text': True,
+                       'include_quote_count': True,
+                       'include_reply_count': 1,
+                       'tweet_mode': 'extended',
+                       'include_entities': True,
+                       'include_user_entities': True,
+                       'include_ext_media_color': True,
+                       'include_ext_media_availability': True,
+                       'send_error_codes': True,
+                       'simple_quoted_tweet': True,
+                       'count': 20,
+                       'ext': 'mediaStats,highlightedLabel'
+                       }
+
+
 if __name__ == '__main__':
     tweet_url = "https://twitter.com/TwitterDev"
     screen_name = "TwitterDev"
@@ -279,4 +310,3 @@ if __name__ == '__main__':
     mediaViewer = TwitterMediaViewer(user_home_url=tweet_url, output_dir=output)
     # fetch & update Tweet List from Twitter Server.
     tweets = mediaViewer.get_tweets_from_twitter()
-
