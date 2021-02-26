@@ -117,7 +117,7 @@ class M3U8Downloader:
 	def downloadM3u8(self, video_host, m3u8_plist):
 
 		resolution_str = str(m3u8_plist.stream_info.resolution[0]) + 'x' + str(m3u8_plist.stream_info.resolution[1])
-		print('\t[+] Checking ' + m3u8_plist.uri)
+		print('\t[+] ' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time())) + ', Checking ' + m3u8_plist.uri)
 
 		# get the buffer fistly
 		ts_m3u8_response = self.get_playfile_m3u8(m3u8_plist.uri)

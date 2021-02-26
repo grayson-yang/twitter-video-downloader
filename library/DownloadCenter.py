@@ -6,6 +6,7 @@ from library.twitter_dl import TwitterDownloader
 from library.twitter_list_dl import TwitterMediaViewer
 import argparse
 
+
 def download(screen_name, output, resolution, debug=0, save_as_mp4=True, download_duration=10):
     tweet_url = "https://twitter.com/" + screen_name
     # Step-1, fetch & update Tweet List from Twitter Server into Local Disk.
@@ -30,7 +31,7 @@ def download(screen_name, output, resolution, debug=0, save_as_mp4=True, downloa
     # Step-4, save the video of Tweet
     for tweet_url in video_links:
         twitter_dl = TwitterDownloader(tweet_url=tweet_url, output_dir=output, resolution=resolution, debug=debug,
-                                   save_as_mp4=save_as_mp4)
+                                       save_as_mp4=save_as_mp4)
         twitter_dl.download(download_duration=download_duration)
 
 
@@ -69,13 +70,7 @@ if __name__ == '__main__':
         screen_name = screen_name.strip(' ')
         if len(screen_name) > 0:
             try:
-                download(screen_name=screen_name, output=output, resolution=resolution, debug=debug, save_as_mp4=True, download_duration=download_duration)
+                download(screen_name=screen_name, output=output, resolution=resolution, debug=debug, save_as_mp4=True,
+                         download_duration=download_duration)
             except:
-                paramStr = "screen_name=" + screen_name + ", output=" + str(output) + ", resolution=" + str(
-                    resolution) + ", debug=" + str(debug) + ", save_as_mp4=" + str(
-                    save_as_mp4) + ", download_duration=" + download_duration
-                errorMsg = "Occurs exception, please dig out. Params : " + paramStr
-                logFile = Path(output) / "DownloadCenter-log.log"
-                with open(logFile, 'a') as f:
-                    f.writelines('\n')
-                    f.writelines(errorMsg)
+                print("Interrupt of " + screen_name)
