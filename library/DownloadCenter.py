@@ -1,13 +1,24 @@
 #!/usr/bin/env python
-from pathlib import Path
+import os
 
+from library.AppData import AppData
 from library.DownloadResourceByTweet import DownloadResourceByTweet
 from library.twitter_dl import TwitterDownloader
 from library.twitter_list_dl import TwitterMediaViewer
 import argparse
 
+# SettingsEntry Initiation
+settings_entry = AppData.getInstance().getSettingsEntry()
+setting_path = os.path.abspath('./config/settings.json')
+settings_entry.setSettingsPath(setting_path)
+settings_entry.loadSettings()
 
-def download(screen_name, output, resolution, debug=0, save_as_mp4=True, download_duration=10):
+
+def download(screen_name, debug=0):
+    # load Settings
+    settings_entry.loadSettings()
+    output = settings_entry.getRootStorage()
+
     tweet_url = "https://twitter.com/" + screen_name
     # Step-1, fetch & update Tweet List from Twitter Server into Local Disk.
     mediaViewer = TwitterMediaViewer(user_home_url=tweet_url, output_dir=output)
@@ -30,6 +41,13 @@ def download(screen_name, output, resolution, debug=0, save_as_mp4=True, downloa
 
     # Step-4, save the video of Tweet
     for tweet_url in video_links:
+        # load Settings
+        settings_entry.loadSettings()
+        output = settings_entry.getRootStorage()
+        resolution = settings_entry.getResolution()
+        save_as_mp4 = settings_entry.getMp4()
+        download_duration = settings_entry.getDuration()
+
         twitter_dl = TwitterDownloader(tweet_url=tweet_url, output_dir=output, resolution=resolution, debug=debug,
                                        save_as_mp4=save_as_mp4)
         twitter_dl.download(download_duration=download_duration)
@@ -65,12 +83,18 @@ if __name__ == '__main__':
     download_duration = int(args.sleep)
     save_as_mp4 = True
 
+    # Save Settings
+    settings_entry.setDuration(download_duration)
+    settings_entry.setResolution(resolution)
+    settings_entry.setMp4(save_as_mp4)
+    settings_entry.setRootStorage(output)
+    settings_entry.saveSettings()
+
     sceen_name_list = screen_name.split(',')
     for screen_name in sceen_name_list:
         screen_name = screen_name.strip(' ')
         if len(screen_name) > 0:
             try:
-                download(screen_name=screen_name, output=output, resolution=resolution, debug=debug, save_as_mp4=True,
-                         download_duration=download_duration)
+                download(screen_name=screen_name, debug=debug)
             except:
                 print("Interrupt of " + screen_name)
