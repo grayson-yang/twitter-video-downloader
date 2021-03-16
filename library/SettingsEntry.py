@@ -31,7 +31,8 @@ class SettingsEntry:
     def loadSettings(self):
         lines = []
         file = self.__config_settings_path
-        Path(file).touch()
+        if Path.exists(Path(file)) is False:
+            Path(file).touch()
         with open(Path(file), 'r') as f1:
             f1.seek(0, 0)
             lines = f1.readlines()

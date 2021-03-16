@@ -101,7 +101,7 @@ class DownloadResourceByTweet:
                 picture_url = tweet.get("media_url")
                 if self.check_picture(picture_url) is not True:
                     self.save_picture(tweet.get("media_url"))
-                    time.sleep(10)
+                    time.sleep(1)
         video_list.sort(key=self.get_sort_value, reverse=True)
         print("\t[+] twitter count = " + str(len(tweets)) + ", including video count = " + str(len(video_list)))
         return True

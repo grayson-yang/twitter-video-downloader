@@ -25,7 +25,7 @@ class M3U8Downloader:
 		self.video_id = video_id
 		self.output_dir = output_dir
 		self.download_duration = download_duration
-		self.video_dir = video_dir;
+		self.video_dir = video_dir
 		self.video_host, self.m3u8_parse = self.getM3U8Summary(m3u8_url)
 
 
@@ -168,6 +168,7 @@ class M3U8Downloader:
 			for f in ts_list:
 				with open(f, 'rb') as fd:
 					shutil.copyfileobj(fd, wfd, 1024 * 1024 * 10)
+				time.sleep(self.download_duration)
 
 		print('\t\t\t[*] Doing the magic ...')
 		ffmpeg \
