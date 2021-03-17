@@ -68,6 +68,7 @@ def download(screen_name, debug=0):
 
 class DownloadTweetThread(threading.Thread):
     def __init__(self, tweet_url, output_dir='./output', resolution=0, debug=0, save_as_mp4=True, download_duration=10):
+        threading.Thread.__init__(self)
         self.tweet_url = tweet_url
         self.output_dir = output_dir
         self.debug = debug
@@ -80,7 +81,7 @@ class DownloadTweetThread(threading.Thread):
             self.debug = 2
 
     def run(self):
-        twitter_dl = TwitterDownloader(tweet_url=self.tweet_url, output_dir=self.output, resolution=self.resolution,
+        twitter_dl = TwitterDownloader(tweet_url=self.tweet_url, output_dir=self.output_dir, resolution=self.resolution,
                                        debug=self.debug,
                                        save_as_mp4=self.save_as_mp4)
         twitter_dl.download(download_duration=self.download_duration)
