@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import threading
 
 from library.AppData import AppData
 from library.DownloadResourceByTweet import DownloadResourceByTweet
@@ -13,16 +14,19 @@ setting_path = os.path.abspath('./config/settings.json')
 settings_entry.setSettingsPath(setting_path)
 settings_entry.loadSettings()
 
+is_multiThread = True
 
 def download(screen_name, debug=0):
     # load Settings
     settings_entry.loadSettings()
     output = settings_entry.getRootStorage()
+    networkStatus = settings_entry.getNetworkStatus()
 
-    tweet_url = "https://twitter.com/" + screen_name
-    # Step-1, fetch & update Tweet List from Twitter Server into Local Disk.
-    mediaViewer = TwitterMediaViewer(user_home_url=tweet_url, output_dir=output)
-    tweets = mediaViewer.get_tweets_from_twitter()
+    if networkStatus is False:
+        tweet_url = "https://twitter.com/" + screen_name
+        # Step-1, fetch & update Tweet List from Twitter Server into Local Disk.
+        mediaViewer = TwitterMediaViewer(user_home_url=tweet_url, output_dir=output)
+        tweets = mediaViewer.get_tweets_from_twitter()
 
     # Step-2, get Tweets from Local Disk.
     downloader = DownloadResourceByTweet(screen_name=screen_name, output_dir=output)
@@ -40,6 +44,7 @@ def download(screen_name, debug=0):
         video_links.append(twitter_url)
 
     # Step-4, save the video of Tweet
+    threadArray = []
     for tweet_url in video_links:
         # load Settings
         settings_entry.loadSettings()
@@ -47,10 +52,48 @@ def download(screen_name, debug=0):
         resolution = settings_entry.getResolution()
         save_as_mp4 = settings_entry.getMp4()
         download_duration = settings_entry.getDuration()
+        if is_multiThread is False:
+            twitter_dl = TwitterDownloader(tweet_url=tweet_url, output_dir=output, resolution=resolution, debug=debug,
+                                           save_as_mp4=save_as_mp4)
+            twitter_dl.download(download_duration=download_duration)
+        else:
+            thread = DownloadTweetThread(tweet_url=tweet_url, output_dir=output, resolution=resolution, debug=debug,
+                                         save_as_mp4=save_as_mp4, download_duration=download_duration)
+            thread.start()
+            threadArray.append(thread)
 
-        twitter_dl = TwitterDownloader(tweet_url=tweet_url, output_dir=output, resolution=resolution, debug=debug,
-                                       save_as_mp4=save_as_mp4)
-        twitter_dl.download(download_duration=download_duration)
+    for thread in threadArray:
+        thread.join()
+
+
+class DownloadTweetThread(threading.Thread):
+    def __init__(self, tweet_url, output_dir='./output', resolution=0, debug=0, save_as_mp4=True, download_duration=10):
+        self.tweet_url = tweet_url
+        self.output_dir = output_dir
+        self.debug = debug
+        self.save_as_mp4 = save_as_mp4
+        if resolution < 0:
+            resolution = 0
+        self.resolution = resolution
+        self.download_duration = download_duration
+        if debug > 2:
+            self.debug = 2
+
+    def run(self):
+        twitter_dl = TwitterDownloader(tweet_url=self.tweet_url, output_dir=self.output, resolution=self.resolution,
+                                       debug=self.debug,
+                                       save_as_mp4=self.save_as_mp4)
+        twitter_dl.download(download_duration=self.download_duration)
+
+
+class DownloadThread(threading.Thread):
+    def __init__(self, screen_name, debug):
+        threading.Thread.__init__(self)
+        self.screen_name = screen_name
+        self.debug = debug
+
+    def run(self):
+        download(screen_name=self.screen_name, debug=self.debug)
 
 
 if __name__ == '__main__':
@@ -82,19 +125,30 @@ if __name__ == '__main__':
     debug = int(args.debug)
     download_duration = int(args.sleep)
     save_as_mp4 = True
+    network_status = False
 
     # Save Settings
     settings_entry.setDuration(download_duration)
     settings_entry.setResolution(resolution)
     settings_entry.setMp4(save_as_mp4)
     settings_entry.setRootStorage(output)
+    settings_entry.setNetworkStatus(network_status)
     settings_entry.saveSettings()
 
+    threadArray = []
     sceen_name_list = screen_name.split(',')
     for screen_name in sceen_name_list:
         screen_name = screen_name.strip(' ')
         if len(screen_name) > 0:
-            try:
-                download(screen_name=screen_name, debug=debug)
-            except:
-                print("Interrupt of " + screen_name)
+            if is_multiThread is False:
+                try:
+                    download(screen_name=screen_name, debug=debug)
+                except:
+                    print("Interrupt of " + screen_name)
+            else:
+                thread = DownloadThread(screen_name, debug)
+                thread.start()
+                threadArray.append(thread)
+
+    for thread in threadArray:
+        thread.join()

@@ -1,15 +1,10 @@
 #!/usr/bin/env python
-import datetime
-import os
 from pathlib import Path
 
 import requests
 import re
 import json
-import argparse
-import urllib.parse
 
-from library.DownloadResourceByTweet import DownloadResourceByTweet
 
 """
 Usage:
@@ -43,7 +38,6 @@ class TwitterMediaViewer:
         self.__get_user_id()
         if self.user_id == '-1':
             return {}
-        self.__get_following_list()
         users, tweets = self.__get_media_list()
 
         # store the users into ~/Twitter/lower(<screen_name>/user.json
@@ -134,6 +128,8 @@ class TwitterMediaViewer:
             print('[+] __get_activate_token Errors')
 
     def __parse_request_variables(self, variables):
+        # Request, accept-encoding: gzip, deflate, br
+        # Response, content-encoding: gzip
         parseMap = {' ': '', '{': '%7B', '\"': '%22', ':': '%3A', ',': '%2C', '}': '%7D'}
         for key in parseMap:
             variables = str(variables).replace(key, parseMap[key])
@@ -276,32 +272,6 @@ class TwitterMediaViewer:
         following_api_response = req.get(requestUrl)
         print(following_api_response.text)
 
-    def __submit_all(self):
-        variableMap = {'include_profile_interstitial_type': 1,
-                       'include_blocking': 1,
-                       'include_blocked_by': 1,
-                       'include_followed_by': 1,
-                       'include_want_retweets': 1,
-                       'include_mute_edge': 1,
-                       'include_can_dm': 1,
-                       'include_can_media_tag': 1,
-                       'skip_status': 1,
-                       'cards_platform': 'Web-12',
-                       'include_cards': 1,
-                       'include_ext_alt_text': True,
-                       'include_quote_count': True,
-                       'include_reply_count': 1,
-                       'tweet_mode': 'extended',
-                       'include_entities': True,
-                       'include_user_entities': True,
-                       'include_ext_media_color': True,
-                       'include_ext_media_availability': True,
-                       'send_error_codes': True,
-                       'simple_quoted_tweet': True,
-                       'count': 20,
-                       'ext': 'mediaStats,highlightedLabel'
-                       }
-
 
 if __name__ == '__main__':
     tweet_url = "https://twitter.com/TwitterDev"
@@ -310,3 +280,4 @@ if __name__ == '__main__':
     mediaViewer = TwitterMediaViewer(user_home_url=tweet_url, output_dir=output)
     # fetch & update Tweet List from Twitter Server.
     tweets = mediaViewer.get_tweets_from_twitter()
+    print('\t[+] Fetched ' + str(len(tweets)) + ' tweets')

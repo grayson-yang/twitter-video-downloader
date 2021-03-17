@@ -72,6 +72,12 @@ class SettingsEntry:
     def setRootStorage(self, folder):
         self.__settings_json["storage"]["root"] = folder
 
+    def getNetworkStatus(self):
+        return self.__settings_json["network"]["status"]
+
+    def setNetworkStatus(self, status):
+        self.__settings_json["network"]["status"] = status
+
 
 if __name__ == '__main__':
     # Instance Initiation

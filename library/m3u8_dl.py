@@ -141,8 +141,9 @@ class M3U8Downloader:
 			ts_path = Path(self.output_dir) / ts_parse.path[1:]
 			if Path.exists(ts_path) is False:
 				ts_file = requests.get(video_host + ts_uri)
-				time.sleep(self.download_duration)
 				ts_path.write_bytes(ts_file.content)
+				if self.download_duration > 0:
+					time.sleep(self.download_duration)
 			ts_list.append(ts_path)
 
 		return resolution_str, ts_list
@@ -168,7 +169,8 @@ class M3U8Downloader:
 			for f in ts_list:
 				with open(f, 'rb') as fd:
 					shutil.copyfileobj(fd, wfd, 1024 * 1024 * 10)
-				time.sleep(self.download_duration)
+				if self.download_duration > 0:
+					time.sleep(self.download_duration)
 
 		print('\t\t\t[*] Doing the magic ...')
 		ffmpeg \
