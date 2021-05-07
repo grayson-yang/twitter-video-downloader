@@ -76,6 +76,11 @@ class M3U8Downloader:
 					filtered_playlists.append(playlist.playlists[len(playlist.playlists) - 1])
 
 			for plist in filtered_playlists:
+				if plist.uri.find("?") >= 0:
+					# Skip M4S formatted media, support later.
+					print('\t[+] ' + 'Skip Media: ' + plist.uri)
+					continue
+
 				resolution_str, ts_list = self.downloadM3u8(video_host=video_host, m3u8_plist=plist)
 				if save_as_mp4 is True:
 					self.merge_ts_files(resolution_str, ts_list)
